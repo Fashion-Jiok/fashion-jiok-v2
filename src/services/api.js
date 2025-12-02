@@ -2,7 +2,7 @@
 
 // ⚠️ 'localhost'는 시뮬레이터에서만 작동합니다.
 // ⚠️ 실제 폰에서 테스트하려면 PC의 내부 IP 주소로 변경해야 합니다.
-const BASE_URL = 'http://192.168.0.11:3000';
+const BASE_URL = "http://172.20.10.2:8000";
 
 export const fetchExploreUsers = async () => {
   try {

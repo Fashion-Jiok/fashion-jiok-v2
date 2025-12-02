@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -6,26 +6,111 @@ import {
   ScrollView, 
   StyleSheet, 
   Image,
-  StatusBar
+  StatusBar,
+  Alert,              // ★ 추가됨
+  ActivityIndicator   // ★ 추가됨 (로딩바)
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker'; // ★ 추가됨 (갤러리 기능)
+
+// ★ 서버 주소 (핫스팟 IP: 172.20.10.2 확인!)
+const SERVER_URL = "http://172.20.10.2:8000/predict";
 
 export default function MainHome({ navigation }) {
-  // 현재 활성화된 탭 이름 (여기서는 'MainHome'이 활성화)
   const activeRouteName = 'MainHome'; 
+  const [analyzing, setAnalyzing] = useState(false); // ★ 분석 중 로딩 상태
 
-  const getTabColor = (routeName) => {
-    return routeName === activeRouteName ? '#000000' : '#9ca3af';
+  // ============================================================
+  // ★ 1. 성별 선택 팝업 -> 갤러리 열기
+  // ============================================================
+  const pickImage = async () => {
+    Alert.alert(
+      "AI 스타일 분류기",
+      "분석할 모델의 성별을 선택해주세요.",
+      [
+        { text: "남성 패션", onPress: () => openGallery('male') },
+        { text: "여성 패션", onPress: () => openGallery('female') },
+        { text: "취소", style: "cancel" }
+      ]
+    );
   };
-  const getTabWeight = (routeName) => {
-    return routeName === activeRouteName ? '700' : '500';
+
+  const openGallery = async (selectedGender) => {
+    // 권한 요청
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+      return;
+    }
+
+    // 갤러리 열기
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true, // 자르기 허용
+      aspect: [3, 4],     
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      // 사진 선택 완료 -> 서버로 전송
+      analyzeStyle(result.assets[0].uri, selectedGender);
+    }
   };
+
+  // ============================================================
+  // ★ 2. 서버로 사진 전송 및 결과 받기
+  // ============================================================
+  const analyzeStyle = async (photoUri, userGender) => {
+    setAnalyzing(true); // 로딩 시작
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri: photoUri,
+      type: 'image/jpeg',
+      name: 'upload.jpg',
+    });
+    formData.append('gender', userGender);
+
+    try {
+      // 서버 요청
+      const response = await fetch(SERVER_URL, {
+        method: 'POST',
+        body: formData,
+        headers: {},
+      });
+
+      const json = await response.json();
+      
+      if (json.result) {
+        Alert.alert("분석 완료!", `당신의 스타일은\n[ ${json.result} ] 입니다.`);
+      } else {
+        Alert.alert("오류", "분석 결과를 가져오지 못했습니다.");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("연결 실패", "서버가 켜져있는지 확인해주세요.\n(IP: 172.20.10.2)");
+    } finally {
+      setAnalyzing(false); // 로딩 끝
+    }
+  };
+
+  // 탭바 스타일 함수
+  const getTabColor = (routeName) => (routeName === activeRouteName ? '#000000' : '#9ca3af');
+  const getTabWeight = (routeName) => (routeName === activeRouteName ? '700' : '500');
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
+      {/* ★ 로딩 화면 (분석 중일 때만 보임) */}
+      {analyzing && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#ffffff" />
+          <Text style={{color: 'white', marginTop: 10, fontWeight:'bold'}}>AI가 스타일을 분석 중입니다...</Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -89,10 +174,12 @@ export default function MainHome({ navigation }) {
             <Text style={styles.sectionTitle}>빠른 메뉴</Text>
             
             <View style={styles.cards}>
+              
+              {/* ★ [수정됨] AI 스타일 분류기 버튼 */}
               <TouchableOpacity
                 style={styles.card}
                 activeOpacity={0.8}
-                onPress={() => alert('준비 중입니다!')}
+                onPress={pickImage} // ★ 여기를 pickImage 함수로 연결했습니다!
               >
                 <View style={styles.cardContent}>
                   <View style={[styles.cardIcon, { backgroundColor: '#eef2ff' }]}>
@@ -174,7 +261,7 @@ export default function MainHome({ navigation }) {
         </View>
       </ScrollView>
 
-      {/* Custom Bottom Bar - 이동 경로 수정 완료 */}
+      {/* Custom Bottom Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('MainHome')}>
           <Ionicons name="home" size={24} color={getTabColor('MainHome')} />
@@ -187,7 +274,6 @@ export default function MainHome({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Map')}>
-          {/* AppNavigator에 Map으로 등록했으므로 Map으로 수정 */}
           <Ionicons name="heart-outline" size={24} color={getTabColor('Map')} />
           <Text style={[styles.tabText, { color: getTabColor('Map'), fontWeight: getTabWeight('Map') }]}>종알림</Text>
         </TouchableOpacity>
@@ -213,6 +299,15 @@ export default function MainHome({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
+  // ★ 로딩 오버레이 스타일 추가
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
