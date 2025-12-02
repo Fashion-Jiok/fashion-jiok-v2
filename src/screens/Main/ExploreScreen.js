@@ -15,8 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { fetchExploreUsers } from '../../services/api'; // ★ API 함수 import
 
 const { width } = Dimensions.get('window');
-const CARD_MARGIN = 12;
-const CARD_WIDTH = (width - 48) / 2; // (화면너비 - 전체패딩) / 2
+const CARD_MARGIN = 8;
+const CARD_WIDTH = (width - 32 - 12) / 2;
 
 
 
@@ -60,13 +60,21 @@ export default function ExploreScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
+      
       {/* 1. Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>스타일 탐색</Text>
-          <Text style={styles.headerSubtitle}>취향이 맞는 패션 피플을 찾아보세요</Text>
-        </View>
+        <TouchableOpacity 
+          style={styles.headerLeft} 
+          onPress={() => navigation.navigate('MainHome')}
+          activeOpacity={0.7}
+        >
+        <Image
+            source={{ uri: 'https://i.pinimg.com/736x/12/b4/d5/12b4d59018dd604fc3b5e287595e4a8c.jpg' }}
+            style={styles.logoImage}
+            resizeMode="cover"
+          />
+          <Text style={styles.headerTitle}>Fashion Jiok</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.filterButton}>
           <Ionicons name="options-outline" size={24} color="#1a1a1a" />
         </TouchableOpacity>
@@ -77,6 +85,11 @@ export default function ExploreScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
+      <View style={styles.subHeader}>
+        <Text style={styles.subHeaderTitle}>스타일 탐색</Text>
+        <Text style={styles.subHeaderDesc}>취향이 맞는 패션 피플을 찾아보세요</Text>
+     </View>
+
         {/* 2. Grid Container */}
         <View style={styles.gridContainer}>
           {profiles.map((profile) => {
@@ -104,7 +117,7 @@ export default function ExploreScreen({ navigation }) {
                   >
                     <Ionicons 
                       name={isLiked ? "heart" : "heart-outline"} 
-                      size={20} 
+                      size={40} 
                       color={isLiked ? "#ec4899" : "#ffffff"} 
                     />
                   </TouchableOpacity>
@@ -203,27 +216,49 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
+    zIndex: 10,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8, // 로고와 텍스트 사이 간격
+  },
+  logoImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6'
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1a1a1a',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
   },
   filterButton: {
     padding: 8,
     backgroundColor: '#f3f4f6',
     borderRadius: 12,
   },
-
-  // Grid Layout
   content: {
     flex: 1,
   },
+  subHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  subHeaderTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  subHeaderDesc: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+
+  // Grid Layout
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
