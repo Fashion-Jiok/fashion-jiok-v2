@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker'; // ★ 추가됨 (갤러리 기능)
 
 // ★ 서버 주소 (핫스팟 IP: 172.20.10.2 확인!)
-const SERVER_URL = "http://172.20.10.2:8000/predict";
+const SERVER_URL = "http://172.30.1.61:8000/predict";
 
 export default function MainHome({ navigation }) {
   const activeRouteName = 'MainHome'; 

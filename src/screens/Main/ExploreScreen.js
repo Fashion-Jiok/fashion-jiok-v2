@@ -1,36 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    View, 
-    Text, 
-    Image, 
-    TouchableOpacity, 
-    StyleSheet, 
-    Dimensions, 
-    StatusBar,
-    ScrollView,
-    Platform,
-    ActivityIndicator
+    View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, 
+    StatusBar, ScrollView, Platform, ActivityIndicator, Alert, Modal, ImageBackground
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-// API 함수 import
-import { fetchExploreUsers } from '../../services/api'; 
+import { fetchExploreUsers, sendLike } from '../../services/api'; 
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
+const MY_USER_ID = 1;
 
 export default function ExploreScreen({ navigation }) {
-    const [profiles, setProfiles] = useState([]); 
+    const [profiles, setProfiles] = useState([]);
     const [likedProfiles, setLikedProfiles] = useState([]);
-    const [loading, setLoading] = useState(true); 
+    const [loading, setLoading] = useState(true);
+    
+    // ⭐️ 모달 관련 상태
+    const [modalVisible, setModalVisible] = useState(false);
+    const [selectedProfile, setSelectedProfile] = useState(null); 
 
-    // 서버에서 데이터 가져오기
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const data = await fetchExploreUsers();
+            const data = await fetchExploreUsers(MY_USER_ID);
             setProfiles(data || []); 
+            
+            const alreadyLiked = data.filter(u => u.isLiked).map(u => u.id);
+            setLikedProfiles(alreadyLiked);
+            
+            console.log('✅ [EXPLORE] 이미 좋아요한 사람:', alreadyLiked);
         } catch (error) {
             console.error("Error loading users:", error);
             setProfiles([]);
@@ -43,21 +43,106 @@ export default function ExploreScreen({ navigation }) {
         loadUsers(); 
     }, []);
     
-    // 좋아요 토글 함수
-    const toggleLike = (id) => {
-        if (likedProfiles.includes(id)) {
-            setLikedProfiles(likedProfiles.filter(pid => pid !== id));
-        } else {
-            setLikedProfiles([...likedProfiles, id]);
+    const toggleLike = async (targetUserId) => {
+        const isCurrentlyLiked = likedProfiles.includes(targetUserId);
+        
+        // ⭐️ 좋아요 취소 기능
+        if (isCurrentlyLiked) {
+            Alert.alert(
+                "좋아요 취소",
+                "좋아요를 취소하시겠습니까?",
+                [
+                    { text: "아니오", style: "cancel" },
+                    { 
+                        text: "취소", 
+                        style: "destructive",
+                        onPress: () => {
+                            setLikedProfiles(likedProfiles.filter(id => id !== targetUserId));
+                            console.log('💔 [EXPLORE] 좋아요 취소');
+                        }
+                    }
+                ]
+            );
+            return;
+        }
+        
+        setLikedProfiles([...likedProfiles, targetUserId]);
+        
+        try {
+            const result = await sendLike(MY_USER_ID, targetUserId);
+            
+            if (result.isMatch) {
+                const targetProfile = profiles.find(p => p.id === targetUserId);
+                Alert.alert(
+                    "매칭 성공! 🎉",
+                    `${targetProfile?.name}님과 매칭되었습니다!`,
+                    [
+                        { text: "계속 탐색", style: "cancel" },
+                        { 
+                            text: "채팅하기", 
+                            onPress: () => navigation.navigate('ChatList')
+                        }
+                    ]
+                );
+            } else {
+                console.log('💕 [EXPLORE] 좋아요 전송 완료');
+            }
+        } catch (error) {
+            console.error('❌ [EXPLORE] 좋아요 에러:', error);
+            setLikedProfiles(likedProfiles.filter(id => id !== targetUserId));
+            Alert.alert("오류", "좋아요 전송에 실패했습니다.");
         }
     };
 
-    // 새로고침 함수
     const handleRefresh = () => {
         loadUsers(); 
     };
+    
+    // ⭐️ 나를 좋아요한 사람 클릭 시 모달 열기
+    const handleLikedMeCardPress = (profile) => {
+        setSelectedProfile(profile);
+        setModalVisible(true);
+    };
+    
+    // ⭐️ 모달에서 좋아요 보내기
+    const handleModalLike = async () => {
+        if (!selectedProfile) return;
+        
+        try {
+            const result = await sendLike(MY_USER_ID, selectedProfile.id);
+            
+            setModalVisible(false);
+            
+            if (result.isMatch) {
+                Alert.alert(
+                    "매칭 성공! 🎉",
+                    `${selectedProfile.name}님과 매칭되었습니다!`,
+                    [
+                        { text: "계속 탐색", style: "cancel" },
+                        { 
+                            text: "채팅하기", 
+                            onPress: () => navigation.navigate('ChatList')
+                        }
+                    ]
+                );
+            } else {
+                Alert.alert("좋아요! 💕", `${selectedProfile.name}님에게 좋아요를 보냈습니다.`);
+            }
+            
+            setLikedProfiles([...likedProfiles, selectedProfile.id]);
+            setSelectedProfile(null);
+        } catch (error) {
+            console.error('❌ [EXPLORE] 모달 좋아요 에러:', error);
+            Alert.alert("오류", "좋아요를 보내는데 실패했습니다.");
+        }
+    };
+    
+    // ⭐️ 모달 닫기
+    const handleModalClose = () => {
+        setModalVisible(false);
+        setSelectedProfile(null);
+    };
 
-    // 하단 탭 스타일 함수
     const activeRouteName = 'Explore';
     const getTabColor = (routeName) => (routeName === activeRouteName ? '#000000' : '#9ca3af');
     const getTabWeight = (routeName) => (routeName === activeRouteName ? '700' : '500');
@@ -66,7 +151,6 @@ export default function ExploreScreen({ navigation }) {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-            {/* Header */}
             <View style={styles.header}>
                 <View>
                     <Text style={styles.headerTitle}>스타일 탐색</Text>
@@ -89,19 +173,32 @@ export default function ExploreScreen({ navigation }) {
                     </View>
                 ) : (
                     <>
-                        {/* Grid Container */}
                         <View style={styles.gridContainer}>
-                            {/* ⭐️ key 중복 해결: index 추가 */}
                             {profiles.map((profile, index) => {
                                 const isLiked = likedProfiles.includes(profile.id);
+                                // ⭐️ 나를 좋아요한 사람인지 확인
+                                const likedMe = profile.type === 'liked_me';
+                                
                                 return (
-                                    <View key={`profile-${profile.id}-${index}`} style={styles.card}>
-                                        {/* Image Area */}
+                                    <TouchableOpacity 
+                                        key={`profile-${profile.id}-${index}`} 
+                                        style={styles.card}
+                                        activeOpacity={likedMe ? 0.7 : 1}
+                                        onPress={() => likedMe ? handleLikedMeCardPress(profile) : null}
+                                    >
                                         <View style={styles.imageContainer}>
                                             <Image 
                                                 source={{ uri: profile.image || 'https://via.placeholder.com/300' }} 
                                                 style={styles.cardImage} 
                                             />
+                                            
+                                            {/* ⭐️ 나를 좋아요한 사람 배지 */}
+                                            {likedMe && (
+                                                <View style={styles.likedMeBadge}>
+                                                    <Ionicons name="heart" size={12} color="#fff" />
+                                                    <Text style={styles.likedMeText}>나를 좋아요!</Text>
+                                                </View>
+                                            )}
                                             
                                             {/* Match Score Badge */}
                                             <View style={styles.matchBadge}>
@@ -109,20 +206,21 @@ export default function ExploreScreen({ navigation }) {
                                             </View>
 
                                             {/* Like Button */}
-                                            <TouchableOpacity 
-                                                style={styles.likeButton}
-                                                onPress={() => toggleLike(profile.id)}
-                                                activeOpacity={0.9}
-                                            >
-                                                <Ionicons 
-                                                    name={isLiked ? "heart" : "heart-outline"} 
-                                                    size={20}
-                                                    color={isLiked ? "#ec4899" : "#ffffff"} 
-                                                />
-                                            </TouchableOpacity>
+                                            {!likedMe && (
+                                                <TouchableOpacity 
+                                                    style={styles.likeButton}
+                                                    onPress={() => toggleLike(profile.id)}
+                                                    activeOpacity={0.9}
+                                                >
+                                                    <Ionicons 
+                                                        name={isLiked ? "heart" : "heart-outline"} 
+                                                        size={20}
+                                                        color={isLiked ? "#ec4899" : "#ffffff"} 
+                                                    />
+                                                </TouchableOpacity>
+                                            )}
                                         </View>
 
-                                        {/* Info Area */}
                                         <View style={styles.cardInfo}>
                                             <View style={styles.nameRow}>
                                                 <Text style={styles.nameText}>{profile.name}, {profile.age}</Text>
@@ -132,7 +230,14 @@ export default function ExploreScreen({ navigation }) {
                                                 <Text style={styles.locationText}>{profile.location || '서울'}</Text>
                                             </View>
                                             
-                                            {/* Tags */}
+                                            {/* ⭐️ 나를 좋아요한 사람 레이블 */}
+                                            {likedMe && (
+                                                <View style={styles.likedMeLabel}>
+                                                    <Ionicons name="heart" size={12} color="#ec4899" />
+                                                    <Text style={styles.likedMeLabelText}>나를 좋아요했어요!</Text>
+                                                </View>
+                                            )}
+                                            
                                             <View style={styles.tagsRow}>
                                                 {(profile.tags || [profile.style || '패션']).map((tag, idx) => (
                                                     <View key={`tag-${index}-${idx}`} style={styles.tag}>
@@ -141,19 +246,17 @@ export default function ExploreScreen({ navigation }) {
                                                 ))}
                                             </View>
                                         </View>
-                                    </View>
+                                    </TouchableOpacity>
                                 );
                             })}
                         </View>
                         
-                        {/* 프로필이 없을 때 메시지 */}
                         {profiles.length === 0 && (
                              <View style={styles.emptyState}>
                                 <Text style={styles.emptyText}>현재 탐색할 프로필이 없습니다. 😭</Text>
                              </View>
                         )}
 
-                        {/* Refresh Button */}
                         <TouchableOpacity 
                             style={styles.refreshButton}
                             onPress={handleRefresh}
@@ -170,6 +273,73 @@ export default function ExploreScreen({ navigation }) {
                     </>
                 )}
             </ScrollView>
+
+            {/* ⭐️ 프로필 상세보기 모달 */}
+            <Modal
+                animationType="slide"
+                transparent={false}
+                visible={modalVisible}
+                onRequestClose={handleModalClose}
+            >
+                {selectedProfile && (
+                    <View style={styles.modalContainer}>
+                        <ImageBackground 
+                            source={{ uri: selectedProfile.image || 'https://via.placeholder.com/400x600' }} 
+                            style={styles.modalBg} 
+                            resizeMode="cover"
+                        >
+                            <LinearGradient 
+                                colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.85)']} 
+                                style={styles.modalGradient}
+                            >
+                                {/* 닫기 버튼 */}
+                                <View style={styles.modalHeader}>
+                                    <TouchableOpacity 
+                                        style={styles.closeButton}
+                                        onPress={handleModalClose}
+                                    >
+                                        <Ionicons name="close" size={28} color="#fff" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* 프로필 정보 */}
+                                <View style={styles.modalInfo}>
+                                    <View style={styles.modalBadge}>
+                                        <Ionicons name="heart" size={16} color="#fff" />
+                                        <Text style={styles.modalBadgeText}>이 분이 나를 좋아요했어요!</Text>
+                                    </View>
+                                    
+                                    <Text style={styles.modalName}>{selectedProfile.name}, {selectedProfile.age}</Text>
+                                    <Text style={styles.modalJob}>{selectedProfile.style || selectedProfile.location || '스타일 정보 없음'}</Text>
+                                    
+                                    {selectedProfile.tags && selectedProfile.tags.length > 0 && (
+                                        <View style={styles.modalTagsRow}>
+                                            {selectedProfile.tags.map((tag, idx) => (
+                                                <View key={`modal-tag-${idx}`} style={styles.modalTag}>
+                                                    <Text style={styles.modalTagText}>#{tag}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    )}
+                                    
+                                    {/* 버튼 */}
+                                    <View style={styles.modalBtnRow}>
+                                        <TouchableOpacity style={styles.modalPassBtn} onPress={handleModalClose}>
+                                            <Ionicons name="close" size={32} color="#ff4b4b" />
+                                        </TouchableOpacity>
+                                        
+                                        <TouchableOpacity style={styles.modalLikeBtn} onPress={handleModalLike}>
+                                            <LinearGradient colors={['#ec4899', '#9333ea']} style={styles.modalGradBtn}>
+                                                <Ionicons name="heart" size={44} color="#fff" />
+                                            </LinearGradient>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </LinearGradient>
+                        </ImageBackground>
+                    </View>
+                )}
+            </Modal>
 
             {/* Bottom Tab Bar */}
             <View style={styles.bottomBar}>
@@ -285,10 +455,33 @@ const styles = StyleSheet.create({
         height: '100%',
         resizeMode: 'cover',
     },
-    matchBadge: {
+    // ⭐️ 나를 좋아요한 사람 배지 (이미지 위)
+    likedMeBadge: {
         position: 'absolute',
         top: 8,
         left: 8,
+        backgroundColor: '#ec4899',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    likedMeText: {
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    matchBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
         backgroundColor: 'rgba(0,0,0,0.6)',
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -336,6 +529,23 @@ const styles = StyleSheet.create({
     locationText: {
         fontSize: 12,
         color: '#9ca3af',
+    },
+    // ⭐️ 나를 좋아요한 사람 레이블 (카드 정보 영역에 표시)
+    likedMeLabel: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fce7f3',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginBottom: 8,
+        gap: 4,
+    },
+    likedMeLabelText: {
+        fontSize: 11,
+        color: '#ec4899',
+        fontWeight: '700',
     },
     tagsRow: {
         flexDirection: 'row',
@@ -407,5 +617,112 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 16,
         color: '#9ca3af',
-    }
+    },
+    
+    // ⭐️ 모달 스타일
+    modalContainer: {
+        flex: 1,
+        backgroundColor: '#000',
+    },
+    modalBg: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+    },
+    modalGradient: {
+        flex: 1,
+        justifyContent: 'space-between',
+    },
+    modalHeader: {
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        paddingHorizontal: 20,
+        alignItems: 'flex-end',
+    },
+    closeButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalInfo: {
+        padding: 24,
+        paddingBottom: 40,
+    },
+    modalBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ec4899',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        marginBottom: 16,
+    },
+    modalBadgeText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
+        marginLeft: 6,
+    },
+    modalName: {
+        fontSize: 32,
+        fontWeight: '700',
+        color: '#fff',
+        marginBottom: 8,
+    },
+    modalJob: {
+        fontSize: 18,
+        color: '#e5e7eb',
+        marginBottom: 16,
+    },
+    modalTagsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 24,
+    },
+    modalTag: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    modalTagText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    modalBtnRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-evenly',
+        alignItems: 'center',
+    },
+    modalPassBtn: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 5,
+    },
+    modalLikeBtn: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        overflow: 'hidden',
+        elevation: 10,
+    },
+    modalGradBtn: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });

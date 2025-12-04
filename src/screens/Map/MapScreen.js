@@ -16,7 +16,7 @@ import { WebView } from 'react-native-webview';
 const { width } = Dimensions.get('window');
 
 // API 설정
-const BASE_URL = 'http://172.30.1.89:3000/api';
+import { fetchUserLocations, SERVER_URL } from '../../services/api';
 
 // ⭐️ 카카오 JavaScript 키 직접 입력
 const KAKAO_JS_KEY = '0fc98fd0c85dcfcc3f9d6027226db403';
@@ -32,31 +32,30 @@ export default function MapScreen({ navigation }) {
   const [currentLocation, setCurrentLocation] = useState(COORD_BUNDANG);
   const webViewRef = useRef(null);
 
-  // DB에서 사용자 위치 정보를 불러오는 함수
+  // MapScreen.jsx - 상단 import 부분은 그대로 두고
+
+// fetchUsers 함수만 완전히 교체 (48번째 줄 근처)
   const fetchUsers = async () => {
-    setLoading(true);
-    const currentUserId = 1;
+  setLoading(true);
+  const currentUserId = 1;
 
-    try {
-      const url = `${BASE_URL}/users/locations?userId=${currentUserId}&lat=${currentLocation.lat}&lon=${currentLocation.lon}`;
-      console.log('[MAP] 요청 URL:', url);
-      
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('[MAP] 응답 데이터:', data.length, '명');
-      setUsers(data);
-    } catch (error) {
-      console.error("[MAP] 지도 사용자 로딩 에러:", error);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    // ✅ api.js의 fetchUserLocations 함수 사용
+    const data = await fetchUserLocations(
+      currentUserId, 
+      currentLocation.lat, 
+      currentLocation.lon
+    );
+    
+    console.log('[MAP] 응답 데이터:', data.length, '명');
+    setUsers(data);
+  } catch (error) {
+    console.error("[MAP] 지도 사용자 로딩 에러:", error);
+    setUsers([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchUsers();
