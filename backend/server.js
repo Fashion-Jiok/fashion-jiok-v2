@@ -4,7 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { pool } = require('./src/config/database');
 
 const app = express();
@@ -14,7 +14,16 @@ app.use(bodyParser.json());
 console.log('---------------------------------');
 console.log('카카오 키 로드 성공:', process.env.KAKAO_REST_API_KEY ? 'O' : 'X');
 console.log('---------------------------------');
-
+// Gemini AI 설정
+const apiKey = process.env.GEMINI_API_KEY;
+let genAI;
+if (apiKey) {
+    genAI = new GoogleGenerativeAI(apiKey);
+    console.log('Gemini 키 로드 성공: O');
+} else {
+    console.log('Gemini 키 로드 성공: X');
+}
+const MODEL_NAME = "gemini-2.5-flash";
 // ============================================
 // API 1: 탐색 화면 - 사용자 목록 (좋아요 상태 포함)
 // ============================================
@@ -367,6 +376,54 @@ function getTimeAgo(date) {
 // 서버 실행
 // ============================================
 const PORT = process.env.PORT || 3000;
+
+// ============================================
+// API 8: AI 대화 추천 (Gemini)
+// ============================================
+app.post('/api/ai/suggestions', async (req, res) => {
+    console.log('--- 🤖 AI 추천 요청 받음 ---');
+    console.log('요청 데이터:', JSON.stringify(req.body));  // ⭐️ 추가
+    
+    const { userProfile, partnerProfile, chatHistory } = req.body;
+
+    if (!genAI) {
+        return res.status(503).json({ error: 'AI 서비스를 사용할 수 없습니다.' });
+    }
+
+    try {
+        const profileInfo = JSON.stringify(userProfile || {});
+        const partnerInfo = JSON.stringify(partnerProfile || {});
+        const historyText = chatHistory && chatHistory.length > 0
+            ? chatHistory.slice(-8).map(msg => `${msg.role || 'user'}: ${msg.text}`).join('\n')
+            : '아직 대화 없음';
+
+        const prompt = `당신은 소개팅 어플을 사용하는 사용자의 대화를 돕는 센스있고 전문적인 AI 어시스턴트입니다. 
+
+상대방: ${partnerInfo}
+대화내역: ${historyText}
+
+위 정보를 바탕으로 대화를 이어나갈 수 있도록 사용자에게 추천할 3개의 짧은 다음 메시지를 각 줄마다 하나씩 작성해주세요.
+각 메시지는 한 문장으로 작성하고, 줄바꿈으로 구분해주세요.`;
+
+        console.log('📝 프롬프트 전송 중...');  // ⭐️ 추가
+        
+        const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+
+        console.log('📥 Gemini 원본 응답:', text);  // ⭐️ 추가 - 이게 중요!
+
+        const suggestions = text.trim().split('\n').filter(s => s.trim()).slice(0, 3);
+        
+        console.log('🤖 AI 추천 완료:', suggestions);
+        res.json({ suggestions });
+
+    } catch (error) {
+        console.error('❌ AI 오류:', error);
+        res.status(500).json({ error: 'AI 처리 중 오류 발생' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 서버 실행됨 (포트: ${PORT})`);
     console.log(`📊 DB: fashionjiok`);

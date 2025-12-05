@@ -2,7 +2,7 @@
 // ⭐️ 한 곳에서만 IP 주소를 관리합니다!
 
 // 1️⃣ 여기만 수정하세요!
-const SERVER_IP = '172.30.1.61'; // ← ipconfig에서 확인한 IP로 변경
+const SERVER_IP = '172.30.1.89'; // ← ipconfig에서 확인한 IP로 변경
 const SERVER_PORT = '3000';
 export const SERVER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
 
@@ -170,24 +170,29 @@ export const fetchUserLocations = async (userId = 1, lat, lon) => {
     throw error;
   }
 };
-
 // ============================================
-// AI 대화 제안 API (Mock - 추후 구현)
+// AI 대화 제안 API (Gemini 서버 호출)
 // ============================================
 export const getAiSuggestions = async (context) => {
   try {
-    // TODO: 실제 AI API 연결
-    console.log('🤖 AI 제안 요청:', context);
+    console.log('🤖 [AI] 대화 추천 요청:', context);
     
-    // 임시 Mock 데이터
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return [
-      "안녕하세요! 프로필 사진이 정말 멋지네요 😊",
-      "같은 지역에 계시네요! 자주 가는 카페 있으세요?",
-      `${context.otherUserId}님의 스타일이 정말 좋아 보여요!`
-    ];
+    const response = await fetch(`${SERVER_URL}/api/ai/suggestions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userProfile: context.userProfile || {},
+        partnerProfile: context.partnerProfile || {},
+        chatHistory: context.chatHistory || []
+      })
+    });
+    
+    const data = await response.json();
+    console.log('✅ [AI] 추천 받음:', data.suggestions);
+    return data.suggestions || [];
+    
   } catch (error) {
     console.error('❌ [AI] 에러:', error);
-    return ["안녕하세요!", "만나서 반갑습니다!"];
+    return ["안녕하세요!", "반갑습니다!"];
   }
 };

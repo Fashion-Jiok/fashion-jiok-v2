@@ -65,30 +65,33 @@ const loadMessages = async () => {
   setIsLoadingMessages(false);
  }
 };
-
 const fetchOpeningSuggestions = async () => {
- setIsLoadingSuggestions(true);
- setShowAISuggestions(true);
+  setIsLoadingSuggestions(true);
+  setShowAISuggestions(true);
 
- const context = {
-  otherUserId: matchData.userId,
-  chatHistory: messages.map(msg => ({
-   role: msg.sender === 'user' ? 'user' : 'model',
-   text: msg.text
-  }))
- };
+  const context = {
+    userProfile: { id: MY_USER_ID },
+    partnerProfile: {
+      id: matchData.userId,
+      name: matchData.name,
+      age: matchData.age
+    },
+    chatHistory: messages.map(msg => ({
+      role: msg.sender === 'user' ? 'user' : 'model',
+      text: msg.text
+    }))
+  };
 
- try {
-  const suggestions = await getAiSuggestions(context);
-  setAiSuggestions(suggestions);
- } catch (error) {
-  console.error("AI 추천 로드 실패:", error);
-  setAiSuggestions(["날씨가 좋네요!", "취미가 무엇인가요?"]);
- }
- 
- setIsLoadingSuggestions(false);
+  try {
+    const suggestions = await getAiSuggestions(context);
+    setAiSuggestions(suggestions);
+  } catch (error) {
+    console.error("AI 추천 로드 실패:", error);
+    setAiSuggestions(["날씨가 좋네요!", "취미가 무엇인가요?"]);
+  }
+  
+  setIsLoadingSuggestions(false);
 };
-
 // ⭐️ 메시지 전송 (DB 저장 포함)
 const handleSend = async (text) => {
  const messageText = text || inputText;
