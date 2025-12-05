@@ -299,12 +299,13 @@ return (
    </View>
   ) : (
    <FlatList
-    data={messages}
+    data={[...messages].reverse()}
     renderItem={renderMessage}
     keyExtractor={item => item.id.toString()}
     style={{ flex: 1, backgroundColor: '#f9fafb' }}
     contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
-    ListFooterComponent={renderAISuggestions()}
+    inverted
+    ListHeaderComponent={renderAISuggestions()}
    />
   )}
 
@@ -313,7 +314,8 @@ return (
    backgroundColor: '#ffffff',
    borderTopWidth: 1,
    borderTopColor: '#e5e7eb',
-   padding: 16
+   padding: 13,
+   paddingBottom: 30
   }}>
    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
    <TouchableOpacity>
