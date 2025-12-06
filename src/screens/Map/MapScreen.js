@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   StatusBar,
   Platform,
-  Alert,
+  Modal,
+  Image,
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,32 +31,29 @@ export default function MapScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(COORD_BUNDANG);
+  const [selectedUser, setSelectedUser] = useState(null);
   const webViewRef = useRef(null);
 
-  // MapScreen.jsx - 상단 import 부분은 그대로 두고
-
-// fetchUsers 함수만 완전히 교체 (48번째 줄 근처)
   const fetchUsers = async () => {
-  setLoading(true);
-  const currentUserId = 1;
+    setLoading(true);
+    const currentUserId = 1;
 
-  try {
-    // ✅ api.js의 fetchUserLocations 함수 사용
-    const data = await fetchUserLocations(
-      currentUserId, 
-      currentLocation.lat, 
-      currentLocation.lon
-    );
-    
-    console.log('[MAP] 응답 데이터:', data.length, '명');
-    setUsers(data);
-  } catch (error) {
-    console.error("[MAP] 지도 사용자 로딩 에러:", error);
-    setUsers([]);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const data = await fetchUserLocations(
+        currentUserId, 
+        currentLocation.lat, 
+        currentLocation.lon
+      );
+      
+      console.log('[MAP] 응답 데이터:', data.length, '명');
+      setUsers(data);
+    } catch (error) {
+      console.error("[MAP] 지도 사용자 로딩 에러:", error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -63,7 +61,10 @@ export default function MapScreen({ navigation }) {
 
   // 카카오맵 HTML 생성
   const generateMapHTML = () => {
-    const markersJS = users.map((user, index) => `
+    const markersJS = users.map((user, index) => {
+      const userImage = user.image_url || 'https://via.placeholder.com/100';
+      
+      return `
       // 마커 생성
       var markerPosition${index} = new kakao.maps.LatLng(${user.latitude}, ${user.longitude});
       var marker${index} = new kakao.maps.Marker({
@@ -73,7 +74,7 @@ export default function MapScreen({ navigation }) {
       
       // 커스텀 오버레이 (이름표)
       var content${index} = '<div style="padding:8px 12px;background:#fff;border-radius:20px;border:2px solid #ec4899;font-size:12px;font-weight:bold;color:#333;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.15);">' +
-        '${user.gender === "F" ? "💃" : "🕺"} ${(user.name || "유저" + user.user_id).replace(/'/g, "\\'")}' +
+        '${(user.name || "유저" + user.user_id).replace(/'/g, "\\'")}' +
         '</div>';
       
       var overlay${index} = new kakao.maps.CustomOverlay({
@@ -90,12 +91,15 @@ export default function MapScreen({ navigation }) {
           user: {
             id: ${user.user_id},
             name: '${(user.name || "유저" + user.user_id).replace(/'/g, "\\'")}',
+            age: ${user.age || 0},
+            image: '${userImage.replace(/'/g, "\\'")}',
             style: '${(user.primary_style || user.location_name || "스타일 정보 없음").replace(/'/g, "\\'")}',
-            gender: '${user.gender}'
+            gender: '${user.gender}',
+            bio: '${(user.bio || "소개가 없습니다").replace(/'/g, "\\'")}'
           }
         }));
       });
-    `).join('\n');
+    `}).join('\n');
 
     return `
 <!DOCTYPE html>
@@ -166,14 +170,7 @@ export default function MapScreen({ navigation }) {
       } else if (data.type === 'mapError') {
         console.error('[MAP] 카카오맵 에러:', data.error);
       } else if (data.type === 'markerClick') {
-        Alert.alert(
-          `${data.user.name}`,
-          `스타일: ${data.user.style}\n성별: ${data.user.gender === 'F' ? '여성' : '남성'}`,
-          [
-            { text: '닫기', style: 'cancel' },
-            { text: '프로필 보기', onPress: () => console.log('프로필 이동:', data.user.id) }
-          ]
-        );
+        setSelectedUser(data.user);
       }
     } catch (e) {
       console.log('[MAP] WebView message:', event.nativeEvent.data);
@@ -256,6 +253,60 @@ export default function MapScreen({ navigation }) {
           <Ionicons name="refresh" size={22} color="#333" />
         </TouchableOpacity>
       </View>
+
+      {/* ⭐️ 사용자 프로필 모달 */}
+      <Modal
+        visible={selectedUser !== null}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedUser(null)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedUser(null)}
+        >
+          <View style={styles.modalContent}>
+            {selectedUser && (
+              <>
+                <Image 
+                  source={{ uri: selectedUser.image }} 
+                  style={styles.profileImage}
+                />
+                <Text style={styles.modalName}>
+                  {selectedUser.name}, {selectedUser.age}
+                </Text>
+                <Text style={styles.modalInfo}>
+                  직업: {selectedUser.style}
+                </Text>
+                <Text style={styles.modalInfo}>
+                  성별: {selectedUser.gender === 'F' ? '여성' : '남성'}
+                </Text>
+                <Text style={styles.modalBio}>
+                  {selectedUser.bio}
+                </Text>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity 
+                    style={styles.modalBtnClose}
+                    onPress={() => setSelectedUser(null)}
+                  >
+                    <Text style={styles.modalBtnCloseText}>닫기</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.modalBtnProfile}
+                    onPress={() => {
+                      console.log('프로필 이동:', selectedUser.id);
+                      setSelectedUser(null);
+                    }}
+                  >
+                    <Text style={styles.modalBtnProfileText}>프로필 보기</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* 하단 탭 바 */}
       <View style={styles.bottomBar}>
@@ -396,6 +447,71 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 5,
+  },
+
+  // Modal 스타일
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: width * 0.8,
+    alignItems: 'center',
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 16,
+    backgroundColor: '#f0f0f0',
+  },
+  modalName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  modalInfo: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  modalBio: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 10,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    marginTop: 20,
+    gap: 12,
+  },
+  modalBtnClose: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+  },
+  modalBtnCloseText: {
+    color: '#666',
+    fontWeight: '600',
+  },
+  modalBtnProfile: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    backgroundColor: '#ec4899',
+  },
+  modalBtnProfileText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 
   // Bottom Bar

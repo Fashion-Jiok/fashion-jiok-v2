@@ -337,13 +337,17 @@ app.get('/api/users/locations', async (req, res) => {
             SELECT 
                 u.user_id,
                 u.name,
+                u.age,
                 u.gender,
+                u.bio,
                 u.job as primary_style,
                 loc.latitude,
                 loc.longitude,
-                loc.location_name
+                loc.location_name,
+                img.image_url
             FROM users u
             JOIN user_locations loc ON u.user_id = loc.user_id
+            LEFT JOIN user_images img ON u.user_id = img.user_id AND img.is_primary = TRUE
             WHERE u.user_id != ?
             AND u.is_active = TRUE
             LIMIT 20
@@ -357,7 +361,6 @@ app.get('/api/users/locations', async (req, res) => {
         res.status(500).send("Location Error");
     }
 });
-
 // ============================================
 // 헬퍼 함수
 // ============================================
