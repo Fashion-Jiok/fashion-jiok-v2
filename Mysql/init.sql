@@ -377,4 +377,8 @@ SELECT
 FROM likes l
 JOIN users u1 ON l.from_user_id = u1.user_id
 JOIN users u2 ON l.to_user_id = u2.user_id
+<<<<<<< HEAD
 WHERE l.to_user_id = 1;3
+=======
+WHERE l.to_user_id = 1;
+>>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a

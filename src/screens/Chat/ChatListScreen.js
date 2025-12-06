@@ -122,6 +122,7 @@ export default function ChatListScreen({ navigation }) {
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
             <View style={styles.header}>
+<<<<<<< HEAD
                 <TouchableOpacity 
         style={styles.headerLeft} 
         onPress={() => navigation.navigate('MainHome')}
@@ -136,6 +137,9 @@ export default function ChatListScreen({ navigation }) {
         <Text style={styles.logoTitle}>Fashion Jiok</Text>
     </TouchableOpacity>
                 
+=======
+                <Text style={styles.mainTitle}>채팅</Text>
+>>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                 <View style={styles.matchCountPill}>
                     <Ionicons name="heart" size={14} color="#ec4899" />
                     <Text style={styles.matchCountText}>{matches.length}명</Text>
@@ -287,6 +291,7 @@ const styles = StyleSheet.create({
     loadingText: { marginTop: 10, fontSize: 16, color: '#666' },
 
     header: {
+<<<<<<< HEAD
        flexDirection: 'row',
     justifyContent: 'space-between', // 양끝 정렬
     alignItems: 'center',
@@ -314,6 +319,13 @@ logoTitle: {
     color: '#000000',
     letterSpacing: -0.5,
 },
+=======
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 50 : 30,
+        paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6',
+        backgroundColor: '#ffffff',
+    },
+>>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
 
     mainTitle: { fontSize: 28, fontWeight: '800', color: '#1f2937' },
 
@@ -408,4 +420,8 @@ logoTitle: {
         color: '#fff', fontWeight: '700',
         marginTop: 4, fontSize: 12,
     },
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a

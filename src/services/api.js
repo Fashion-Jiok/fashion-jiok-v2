@@ -2,8 +2,12 @@
 // ⭐️ 한 곳에서만 IP 주소를 관리합니다!
 
 // 1️⃣ 여기만 수정하세요!
+<<<<<<< HEAD
 //const SERVER_IP = '172.30.1.89'; // ← ipconfig에서 확인한 IP로 변경
 const SERVER_IP = '192.168.0.226'; // 
+=======
+const SERVER_IP = '172.30.1.89'; // ← ipconfig에서 확인한 IP로 변경
+>>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
 const SERVER_PORT = '3000';
 export const SERVER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
 
@@ -171,6 +175,26 @@ export const fetchUserLocations = async (userId = 1, lat, lon) => {
     throw error;
   }
 };
+<<<<<<< HEAD
+=======
+export const deleteChatRoom = async (roomId) => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/chat/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId }),
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('❌ deleteChatRoom 에러:', error);
+    throw error;
+  }
+};
+
+
+>>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
 // ============================================
 // AI 대화 제안 API (Gemini 서버 호출)
 // ============================================
