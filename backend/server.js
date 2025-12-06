@@ -202,7 +202,6 @@ app.post('/api/matches/like', async (req, res) => {
         connection.release();
     }
 });
-
 // ============================================
 // API 4: 채팅 목록 (매칭된 사람들)
 // ============================================
@@ -215,7 +214,6 @@ app.get('/api/chatlist', async (req, res) => {
                 cr.room_id,
                 cr.user_id_1,
                 cr.user_id_2,
-                -- 상대방 정보 추출
                 CASE 
                     WHEN cr.user_id_1 = ? THEN u2.user_id
                     ELSE u1.user_id
@@ -232,10 +230,17 @@ app.get('/api/chatlist', async (req, res) => {
                     WHEN cr.user_id_1 = ? THEN img2.image_url
                     ELSE img1.image_url
                 END as image,
+                CASE 
+                    WHEN cr.user_id_1 = ? THEN u2.job
+                    ELSE u1.job
+                END as job,
+                CASE 
+                    WHEN cr.user_id_1 = ? THEN u2.bio
+                    ELSE u1.bio
+                END as bio,
                 FLOOR(RAND() * 30 + 70) as styleScore,
                 msg.message_content as lastMessage,
                 msg.created_at as lastMessageTime,
-                -- ⭐️ 메시지가 없으면 "새 매칭"
                 CASE WHEN msg.message_content IS NULL THEN 1 ELSE 0 END as isNew
             FROM chat_rooms cr
             LEFT JOIN users u1 ON cr.user_id_1 = u1.user_id
@@ -252,16 +257,15 @@ app.get('/api/chatlist', async (req, res) => {
             WHERE (cr.user_id_1 = ? OR cr.user_id_2 = ?)
             AND cr.is_active = TRUE
             ORDER BY isNew DESC, COALESCE(msg.created_at, cr.created_at) DESC
-        `, [userId, userId, userId, userId, userId, userId]);
+        `, [userId, userId, userId, userId, userId, userId, userId, userId]);
 
-        // ⭐️ timeAgo 계산
         const withTimeAgo = rows.map(row => ({
             ...row,
             id: row.room_id,
             timeAgo: row.lastMessageTime ? getTimeAgo(row.lastMessageTime) : '새 매칭'
         }));
 
-        console.log(`✅ [CHATLIST] ${withTimeAgo.length}개 조회 (새 매칭: ${withTimeAgo.filter(r => r.isNew).length}개)`);
+        console.log(`✅ [CHATLIST] ${withTimeAgo.length}개 조회`);
         res.json(withTimeAgo);
         
     } catch (err) {
@@ -269,7 +273,6 @@ app.get('/api/chatlist', async (req, res) => {
         res.status(500).send("ChatList Error");
     }
 });
-
 // ============================================
 // API 5: 메시지 전송
 // ============================================
@@ -325,10 +328,8 @@ app.get('/api/chat/messages', async (req, res) => {
         res.status(500).send("Get Messages Error");
     }
 });
+// server.js - API 7: 지도 - 주변 사용자 (수정)
 
-// ============================================
-// API 7: 지도 - 주변 사용자
-// ============================================
 app.get('/api/users/locations', async (req, res) => {
     const { userId, lat, lon } = req.query;
     
@@ -346,14 +347,15 @@ app.get('/api/users/locations', async (req, res) => {
                 loc.location_name,
                 img.image_url
             FROM users u
-            JOIN user_locations loc ON u.user_id = loc.user_id
+            -- ⭐️ INNER JOIN 대신 LEFT JOIN 사용
+            LEFT JOIN user_locations loc ON u.user_id = loc.user_id 
             LEFT JOIN user_images img ON u.user_id = img.user_id AND img.is_primary = TRUE
             WHERE u.user_id != ?
             AND u.is_active = TRUE
-            LIMIT 20
+            LIMIT 80
         `, [userId || 1]);
 
-        console.log(`✅ [MAP] ${users.length}명 조회`);
+        console.log(`✅ [MAP] ${users.length}명 조회 (LEFT JOIN 적용)`);
         res.json(users);
         
     } catch (err) {
