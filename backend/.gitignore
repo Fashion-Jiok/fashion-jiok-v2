@@ -1,0 +1,9 @@
+# 환경 변수 파일 (GitHub 업로드 방지)
+.env
+
+# Node.js 모듈 폴더 (매우 크고, 'npm install'로 다시 설치 가능)
+node_modules/
+
+# 빌드 관련 파일
+dist/
+build/

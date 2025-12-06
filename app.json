@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "FashionJiok",
+    "slug": "fashion-jiok",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "사진을 선택하여 프로필을 꾸며보세요."
+        }
+      ],
+      "expo-font"
+    ],
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF",
+        "config": {
+          "googleMaps": {
+            "apiKey": "여기에_구글_맵_API_KEY를_넣어야_합니다"
+          }
+        }
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.fashionjiok.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
