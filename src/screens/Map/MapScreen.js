@@ -33,7 +33,7 @@ export default function MapScreen({ navigation }) {
   const [mapReady, setMapReady] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(COORD_BUNDANG);
   
-  // ⭐️ 모달 관련 상태 추가
+  // ⭐️ 모달 관련 상태 추가
   const [selectedUser, setSelectedUser] = useState(null); 
   const webViewRef = useRef(null);
 
@@ -69,11 +69,11 @@ export default function MapScreen({ navigation }) {
         Alert.alert('💕 좋아요', '좋아요를 보냈어요!');
       }
       setSelectedUser(null); // 모달 닫기
-      fetchUsers(); // ⭐️ 사용자 목록 상태 업데이트 (좋아요/매칭 상태 반영)
+      fetchUsers(); // ⭐️ 사용자 목록 상태 업데이트 (좋아요/매칭 상태 반영)
     } catch (error) {
       console.error('좋아요 실패:', error);
       Alert.alert('오류', '좋아요 전송에 실패했습니다.');
-      setSelectedUser(null);
+      setSelectedUser(null);
     }
   };
 
@@ -84,10 +84,10 @@ export default function MapScreen({ navigation }) {
   // 카카오맵 HTML 생성
   const generateMapHTML = () => {
     const markersJS = users.map((user, index) => {
-      // ⭐️ user.image_url이 백엔드에서 와야 합니다. 없으면 기본 이미지 사용.
+      // ⭐️ user.image_url이 백엔드에서 와야 합니다. 없으면 기본 이미지 사용.
       const userImage = user.image_url || 'https://via.placeholder.com/100'; 
-      const userJob = user.job || user.primary_style || '미상';
-      const userBio = user.bio || '소개가 없습니다.';
+      const userJob = user.job || user.primary_style || '미상';
+      const userBio = user.bio || '소개가 없습니다.';
 
       return `
       // 마커 생성
@@ -119,10 +119,10 @@ export default function MapScreen({ navigation }) {
             age: ${user.age || 0},
             image: '${userImage.replace(/'/g, "\\'")}', // ⭐️ 이미지 URL 전달
             style: '${(user.primary_style || user.location_name || "스타일 정보 없음").replace(/'/g, "\\'")}',
-            job: '${userJob.replace(/'/g, "\\'")}', // ⭐️ 직업 정보 추가
-            bio: '${userBio.replace(/'/g, "\\'")}', // ⭐️ 자기소개 정보 추가
+            job: '${userJob.replace(/'/g, "\\'")}', // ⭐️ 직업 정보 추가
+            bio: '${userBio.replace(/'/g, "\\'")}', // ⭐️ 자기소개 정보 추가
             gender: '${user.gender}',
-            // interests: JSON.parse('[]') // 관심사 데이터가 없으므로 생략 또는 빈 배열
+            // interests: JSON.parse('[]') // 관심사 데이터가 없으므로 생략 또는 빈 배열
           }
         }));
       });
@@ -156,6 +156,21 @@ export default function MapScreen({ navigation }) {
         // 지도 컨트롤 추가
         var zoomControl = new kakao.maps.ZoomControl();
         map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
+        
+        // ⭐️ 지도 스크롤 영역 제한 로직 추가 (반경 10km 근사치)
+        var offset = 0.09; // 10km 근사치
+        var swBound = new kakao.maps.LatLng(${currentLocation.lat} - offset, ${currentLocation.lon} - offset);
+        var neBound = new kakao.maps.LatLng(${currentLocation.lat} + offset, ${currentLocation.lon} + offset);
+        var bounds = new kakao.maps.LatLngBounds(swBound, neBound);
+        
+        map.setMaxBounds(bounds); // ⭐️ 지도 최대 이동 영역 설정
+        
+        // ⭐️ 확대/축소 레벨 제한 설정 추가
+        var MIN_ZOOM_LEVEL = 3; // 최대 확대 제한
+        var MAX_ZOOM_LEVEL = 7; // 최대 축소 제한
+        
+        map.setMinLevel(MIN_ZOOM_LEVEL);
+        map.setMaxLevel(MAX_ZOOM_LEVEL);
         
         // 현재 위치 마커
         var currentPosition = new kakao.maps.LatLng(${currentLocation.lat}, ${currentLocation.lon});
