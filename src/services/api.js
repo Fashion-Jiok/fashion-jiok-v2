@@ -170,6 +170,23 @@ export const fetchUserLocations = async (userId = 1, lat, lon) => {
     throw error;
   }
 };
+export const deleteChatRoom = async (roomId) => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/chat/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId }),
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('❌ deleteChatRoom 에러:', error);
+    throw error;
+  }
+};
+
+
 // ============================================
 // AI 대화 제안 API (Gemini 서버 호출)
 // ============================================

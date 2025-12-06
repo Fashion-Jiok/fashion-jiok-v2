@@ -428,6 +428,31 @@ app.post('/api/ai/suggestions', async (req, res) => {
         res.status(500).json({ error: 'AI 처리 중 오류 발생' });
     }
 });
+// ============================================
+// API 7: 대화방 삭제(나가기)
+// ============================================
+app.post('/api/chat/delete', async (req, res) => {
+    const { roomId } = req.body;
+
+    if (!roomId) {
+        return res.status(400).json({ error: 'roomId is required' });
+    }
+
+    try {
+        await pool.query(
+            `UPDATE chat_rooms SET is_active = FALSE WHERE room_id = ?`,
+            [roomId]
+        );
+
+        console.log(`🗑 채팅방 비활성화 완료: roomId=${roomId}`);
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error('❌ [CHAT DELETE] 에러:', err);
+        res.status(500).json({ error: 'Chat delete error' });
+    }
+});
+
 
 app.listen(PORT, () => {
     console.log(`🚀 서버 실행됨 (포트: ${PORT})`);
