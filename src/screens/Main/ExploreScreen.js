@@ -6,10 +6,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-<<<<<<< HEAD
-// API 서비스 (경로가 맞는지 확인해주세요)
-=======
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
 import { fetchExploreUsers, sendLike } from '../../services/api'; 
 
 const { width } = Dimensions.get('window');
@@ -21,7 +17,7 @@ export default function ExploreScreen({ navigation }) {
     const [likedProfiles, setLikedProfiles] = useState([]);
     const [loading, setLoading] = useState(true);
     
-    // ⭐️ 모달 관련 상태
+    // 모달 관련 상태
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState(null); 
 
@@ -33,11 +29,8 @@ export default function ExploreScreen({ navigation }) {
             
             const alreadyLiked = data.filter(u => u.isLiked).map(u => u.id);
             setLikedProfiles(alreadyLiked);
-<<<<<<< HEAD
-=======
             
             console.log('✅ [EXPLORE] 이미 좋아요한 사람:', alreadyLiked);
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
         } catch (error) {
             console.error("Error loading users:", error);
             setProfiles([]);
@@ -53,7 +46,7 @@ export default function ExploreScreen({ navigation }) {
     const toggleLike = async (targetUserId) => {
         const isCurrentlyLiked = likedProfiles.includes(targetUserId);
         
-        // ⭐️ 좋아요 취소 기능
+        // 좋아요 취소 기능
         if (isCurrentlyLiked) {
             Alert.alert(
                 "좋아요 취소",
@@ -65,10 +58,7 @@ export default function ExploreScreen({ navigation }) {
                         style: "destructive",
                         onPress: () => {
                             setLikedProfiles(likedProfiles.filter(id => id !== targetUserId));
-<<<<<<< HEAD
-=======
                             console.log('💔 [EXPLORE] 좋아요 취소');
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                         }
                     }
                 ]
@@ -94,16 +84,11 @@ export default function ExploreScreen({ navigation }) {
                         }
                     ]
                 );
-<<<<<<< HEAD
-            }
-        } catch (error) {
-=======
             } else {
                 console.log('💕 [EXPLORE] 좋아요 전송 완료');
             }
         } catch (error) {
             console.error('❌ [EXPLORE] 좋아요 에러:', error);
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
             setLikedProfiles(likedProfiles.filter(id => id !== targetUserId));
             Alert.alert("오류", "좋아요 전송에 실패했습니다.");
         }
@@ -113,34 +98,13 @@ export default function ExploreScreen({ navigation }) {
         loadUsers(); 
     };
     
-<<<<<<< HEAD
-=======
-    // ⭐️ 나를 좋아요한 사람 클릭 시 모달 열기
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+    // 나를 좋아요한 사람 클릭 시 모달 열기
     const handleLikedMeCardPress = (profile) => {
         setSelectedProfile(profile);
         setModalVisible(true);
     };
     
-<<<<<<< HEAD
-    const handleModalLike = async () => {
-        if (!selectedProfile) return;
-        try {
-            const result = await sendLike(MY_USER_ID, selectedProfile.id);
-            setModalVisible(false);
-            if (result.isMatch) {
-                Alert.alert("매칭 성공! 🎉", `${selectedProfile.name}님과 매칭되었습니다!`, [
-                    { text: "계속 탐색", style: "cancel" },
-                    { text: "채팅하기", onPress: () => navigation.navigate('ChatList') }
-                ]);
-            } else {
-                Alert.alert("좋아요! 💕", `${selectedProfile.name}님에게 좋아요를 보냈습니다.`);
-            }
-            setLikedProfiles([...likedProfiles, selectedProfile.id]);
-            setSelectedProfile(null);
-        } catch (error) {
-=======
-    // ⭐️ 모달에서 좋아요 보내기
+    // 모달에서 좋아요 보내기
     const handleModalLike = async () => {
         if (!selectedProfile) return;
         
@@ -169,24 +133,16 @@ export default function ExploreScreen({ navigation }) {
             setSelectedProfile(null);
         } catch (error) {
             console.error('❌ [EXPLORE] 모달 좋아요 에러:', error);
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
             Alert.alert("오류", "좋아요를 보내는데 실패했습니다.");
         }
     };
     
-<<<<<<< HEAD
-=======
-    // ⭐️ 모달 닫기
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+    // 모달 닫기
     const handleModalClose = () => {
         setModalVisible(false);
         setSelectedProfile(null);
     };
 
-<<<<<<< HEAD
-    // 하단 탭바 활성 상태 헬퍼
-=======
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
     const activeRouteName = 'Explore';
     const getTabColor = (routeName) => (routeName === activeRouteName ? '#000000' : '#9ca3af');
     const getTabWeight = (routeName) => (routeName === activeRouteName ? '700' : '500');
@@ -195,15 +151,13 @@ export default function ExploreScreen({ navigation }) {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-<<<<<<< HEAD
-            {/* ⭐️ 변경된 헤더 디자인 (Fashion Jiok) */}
+            {/* 헤더 */}
             <View style={styles.header}>
                 <TouchableOpacity 
                     style={styles.headerLeft} 
                     onPress={() => navigation.navigate('MainHome')}
                     activeOpacity={0.7}
                 >
-                    {/* 뒤로가기 아이콘 추가 */}
                     <Ionicons name="chevron-back" size={24} color="#000" style={{ marginRight: 4 }} />
                     <Image
                         source={{ uri: 'https://i.pinimg.com/736x/12/b4/d5/12b4d59018dd604fc3b5e287595e4a8c.jpg' }}
@@ -221,16 +175,6 @@ export default function ExploreScreen({ navigation }) {
                         <Ionicons name="notifications-outline" size={24} color="#000" />
                     </TouchableOpacity>
                 </View>
-=======
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.headerTitle}>스타일 탐색</Text>
-                    <Text style={styles.headerSubtitle}>취향이 맞는 패션 피플을 찾아보세요</Text>
-                </View>
-                <TouchableOpacity style={styles.filterButton}>
-                    <Ionicons name="options-outline" size={24} color="#1a1a1a" />
-                </TouchableOpacity>
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
             </View>
 
             <ScrollView 
@@ -238,25 +182,20 @@ export default function ExploreScreen({ navigation }) {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 100 }}
             >
-<<<<<<< HEAD
-                {/* 기존 제목 섹션 (필요시 유지, 아니면 삭제 가능) */}
-                <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
-                    <Text style={{ fontSize: 22, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 }}>
-                        스타일 탐색
-                    </Text>
-                    <Text style={{ fontSize: 14, color: '#6b7280' }}>
-                        취향이 맞는 패션 피플을 찾아보세요
-                    </Text>
+                {/* 페이지 타이틀 섹션 */}
+                <View style={styles.pageTitleContainer}>
+                    <View>
+                        <Text style={styles.headerTitle}>스타일 탐색</Text>
+                        <Text style={styles.headerSubtitle}>취향이 맞는 패션 피플을 찾아보세요</Text>
+                    </View>
+                    <TouchableOpacity style={styles.filterButton}>
+                        <Ionicons name="options-outline" size={24} color="#1a1a1a" />
+                    </TouchableOpacity>
                 </View>
 
                 {loading ? (
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#000000" />
-=======
-                {loading ? (
-                    <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color="#ec4899" />
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                         <Text style={styles.loadingText}>새로운 프로필을 불러오는 중...</Text>
                     </View>
                 ) : (
@@ -264,10 +203,7 @@ export default function ExploreScreen({ navigation }) {
                         <View style={styles.gridContainer}>
                             {profiles.map((profile, index) => {
                                 const isLiked = likedProfiles.includes(profile.id);
-<<<<<<< HEAD
-=======
-                                // ⭐️ 나를 좋아요한 사람인지 확인
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+                                // 나를 좋아요한 사람인지 확인
                                 const likedMe = profile.type === 'liked_me';
                                 
                                 return (
@@ -283,10 +219,7 @@ export default function ExploreScreen({ navigation }) {
                                                 style={styles.cardImage} 
                                             />
                                             
-<<<<<<< HEAD
-=======
-                                            {/* ⭐️ 나를 좋아요한 사람 배지 */}
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+                                            {/* 나를 좋아요한 사람 배지 */}
                                             {likedMe && (
                                                 <View style={styles.likedMeBadge}>
                                                     <Ionicons name="heart" size={12} color="#fff" />
@@ -294,18 +227,12 @@ export default function ExploreScreen({ navigation }) {
                                                 </View>
                                             )}
                                             
-<<<<<<< HEAD
-=======
-                                            {/* Match Score Badge */}
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
-                                            <View style={styles.matchBadge}>
+                                            {/* ⭐️ [수정됨] 매칭 점수 배지 제거 (80% 등) */}
+                                            {/* <View style={styles.matchBadge}>
                                                 <Text style={styles.matchText}>{profile.styleScore || 75}%</Text>
-                                            </View>
+                                            </View> */}
 
-<<<<<<< HEAD
-=======
                                             {/* Like Button */}
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                                             {!likedMe && (
                                                 <TouchableOpacity 
                                                     style={styles.likeButton}
@@ -330,10 +257,7 @@ export default function ExploreScreen({ navigation }) {
                                                 <Text style={styles.locationText}>{profile.location || '서울'}</Text>
                                             </View>
                                             
-<<<<<<< HEAD
-=======
-                                            {/* ⭐️ 나를 좋아요한 사람 레이블 */}
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+                                            {/* 나를 좋아요한 사람 레이블 */}
                                             {likedMe && (
                                                 <View style={styles.likedMeLabel}>
                                                     <Ionicons name="heart" size={12} color="#ec4899" />
@@ -343,7 +267,7 @@ export default function ExploreScreen({ navigation }) {
                                             
                                             <View style={styles.tagsRow}>
                                                 {(profile.tags || [profile.style || '패션']).map((tag, idx) => (
-                                                    <View key={`tag-${index}-${idx}`} style={styles.tag}>
+                                                    <View key={`tag-${profile.id}-${idx}`} style={styles.tag}>
                                                         <Text style={styles.tagText}>#{tag}</Text>
                                                     </View>
                                                 ))}
@@ -377,11 +301,7 @@ export default function ExploreScreen({ navigation }) {
                 )}
             </ScrollView>
 
-<<<<<<< HEAD
             {/* 프로필 상세보기 모달 */}
-=======
-            {/* ⭐️ 프로필 상세보기 모달 */}
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
             <Modal
                 animationType="slide"
                 transparent={false}
@@ -399,10 +319,7 @@ export default function ExploreScreen({ navigation }) {
                                 colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.85)']} 
                                 style={styles.modalGradient}
                             >
-<<<<<<< HEAD
-=======
                                 {/* 닫기 버튼 */}
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                                 <View style={styles.modalHeader}>
                                     <TouchableOpacity 
                                         style={styles.closeButton}
@@ -412,10 +329,7 @@ export default function ExploreScreen({ navigation }) {
                                     </TouchableOpacity>
                                 </View>
 
-<<<<<<< HEAD
-=======
                                 {/* 프로필 정보 */}
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                                 <View style={styles.modalInfo}>
                                     <View style={styles.modalBadge}>
                                         <Ionicons name="heart" size={16} color="#fff" />
@@ -425,8 +339,6 @@ export default function ExploreScreen({ navigation }) {
                                     <Text style={styles.modalName}>{selectedProfile.name}, {selectedProfile.age}</Text>
                                     <Text style={styles.modalJob}>{selectedProfile.style || selectedProfile.location || '스타일 정보 없음'}</Text>
                                     
-<<<<<<< HEAD
-=======
                                     {selectedProfile.tags && selectedProfile.tags.length > 0 && (
                                         <View style={styles.modalTagsRow}>
                                             {selectedProfile.tags.map((tag, idx) => (
@@ -438,7 +350,6 @@ export default function ExploreScreen({ navigation }) {
                                     )}
                                     
                                     {/* 버튼 */}
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                                     <View style={styles.modalBtnRow}>
                                         <TouchableOpacity style={styles.modalPassBtn} onPress={handleModalClose}>
                                             <Ionicons name="close" size={32} color="#ff4b4b" />
@@ -460,45 +371,25 @@ export default function ExploreScreen({ navigation }) {
             {/* Bottom Tab Bar */}
             <View style={styles.bottomBar}>
                 <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('MainHome')}>
-                    <Ionicons name="home" size={24} color={getTabColor('MainHome')} />
+                    <Ionicons name="home-outline" size={24} color={getTabColor('MainHome')} />
                     <Text style={[styles.tabText, { color: getTabColor('MainHome'), fontWeight: getTabWeight('MainHome') }]}>홈</Text>
                 </TouchableOpacity>
-<<<<<<< HEAD
-=======
-
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                 <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Explore')}>
                     <Ionicons name="compass" size={24} color={getTabColor('Explore')} />
                     <Text style={[styles.tabText, { color: getTabColor('Explore'), fontWeight: getTabWeight('Explore') }]}>탐색</Text>
                 </TouchableOpacity>
-<<<<<<< HEAD
-=======
-
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                 <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Map')}>
-                    <Ionicons name="heart-outline" size={24} color={getTabColor('Map')} />
-                    <Text style={[styles.tabText, { color: getTabColor('Map'), fontWeight: getTabWeight('Map') }]}>종알림</Text>
+                    <Ionicons name="map-outline" size={24} color={getTabColor('Map')} />
+                    <Text style={[styles.tabText, { color: getTabColor('Map'), fontWeight: getTabWeight('Map') }]}>위치</Text>
                 </TouchableOpacity>
-<<<<<<< HEAD
-=======
-
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                 <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Matches')}>
                     <Ionicons name="people-outline" size={24} color={getTabColor('Matches')} />
                     <Text style={[styles.tabText, { color: getTabColor('Matches'), fontWeight: getTabWeight('Matches') }]}>매칭</Text>
                 </TouchableOpacity>
-<<<<<<< HEAD
-=======
-
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                 <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('ChatList')}>
                     <Ionicons name="chatbubbles-outline" size={24} color={getTabColor('ChatList')} />
                     <Text style={[styles.tabText, { color: getTabColor('ChatList'), fontWeight: getTabWeight('ChatList') }]}>채팅</Text>
                 </TouchableOpacity>
-<<<<<<< HEAD
-=======
-
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                 <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('MyProfile')}>
                     <Ionicons name="person-outline" size={24} color={getTabColor('MyProfile')} />
                     <Text style={[styles.tabText, { color: getTabColor('MyProfile'), fontWeight: getTabWeight('MyProfile') }]}>나</Text>
@@ -513,21 +404,18 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#ffffff',
     },
-<<<<<<< HEAD
-    // ⭐️ 헤더 스타일 (제공해주신 스타일 적용)
-=======
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+    // 헤더 스타일 통합
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-<<<<<<< HEAD
         paddingHorizontal: 24,
         paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingBottom: 16,
         backgroundColor: '#ffffff',
         borderBottomWidth: 1,
         borderBottomColor: '#f3f4f6',
+        zIndex: 10,
     },
     headerLeft: { 
         flexDirection: 'row', 
@@ -535,7 +423,7 @@ const styles = StyleSheet.create({
         gap: 8 
     },
     logoImage: { 
-        width: 45, // 로고 크기 살짝 조정 (너무 크면 헤더가 뚱뚱해짐)
+        width: 45, 
         height: 30, 
         borderRadius: 8 
     },
@@ -555,33 +443,27 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center' 
     },
-
-    // Loading & Content
-=======
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
-        paddingBottom: 16,
+    // 페이지 타이틀 스타일
+    pageTitleContainer: {
         paddingHorizontal: 20,
-        backgroundColor: '#ffffff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
-        zIndex: 10,
+        marginBottom: 20,
+        marginTop: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: '700',
         color: '#1a1a1a',
-        marginBottom: 4,
+        marginBottom: 4
     },
     headerSubtitle: {
         fontSize: 14,
-        color: '#6b7280',
+        color: '#6b7280'
     },
-    filterButton: {
-        padding: 8,
-        backgroundColor: '#f3f4f6',
-        borderRadius: 12,
-    },
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+    
+    // Loading & Content
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -595,19 +477,12 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-<<<<<<< HEAD
-        paddingTop: 20,
-=======
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+        paddingTop: 10,
     },
     gridContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         paddingHorizontal: 16,
-<<<<<<< HEAD
-=======
-        paddingTop: 16,
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
         justifyContent: 'space-between',
     },
     card: {
@@ -635,10 +510,6 @@ const styles = StyleSheet.create({
         height: '100%',
         resizeMode: 'cover',
     },
-<<<<<<< HEAD
-=======
-    // ⭐️ 나를 좋아요한 사람 배지 (이미지 위)
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
     likedMeBadge: {
         position: 'absolute',
         top: 8,
@@ -653,10 +524,7 @@ const styles = StyleSheet.create({
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
-<<<<<<< HEAD
-=======
         shadowRadius: 4,
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
         elevation: 5,
     },
     likedMeText: {
@@ -664,6 +532,8 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
     },
+    // ⭐️ [수정됨] matchBadge 스타일은 사용되지 않으므로 주석 처리 또는 삭제 가능
+    /*
     matchBadge: {
         position: 'absolute',
         top: 8,
@@ -680,6 +550,7 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
     },
+    */
     likeButton: {
         position: 'absolute',
         bottom: 8,
@@ -716,10 +587,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#9ca3af',
     },
-<<<<<<< HEAD
-=======
-    // ⭐️ 나를 좋아요한 사람 레이블 (카드 정보 영역에 표시)
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
     likedMeLabel: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -758,14 +625,11 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         borderRadius: 16,
         overflow: 'hidden',
-<<<<<<< HEAD
-=======
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 10,
         elevation: 5,
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
     },
     refreshGradient: {
         flexDirection: 'row',
@@ -778,11 +642,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
-<<<<<<< HEAD
-    
-    // Bottom Bar
-=======
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
     bottomBar: {
         flexDirection: 'row',
         backgroundColor: '#ffffff',
@@ -794,10 +653,7 @@ const styles = StyleSheet.create({
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.05,
-<<<<<<< HEAD
-=======
         shadowRadius: 10,
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
         elevation: 10,
     },
     tabItem: {
@@ -819,11 +675,7 @@ const styles = StyleSheet.create({
         color: '#9ca3af',
     },
     
-<<<<<<< HEAD
-    // Modal
-=======
-    // ⭐️ 모달 스타일
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+    // 모달 스타일
     modalContainer: {
         flex: 1,
         backgroundColor: '#000',
@@ -881,8 +733,6 @@ const styles = StyleSheet.create({
         color: '#e5e7eb',
         marginBottom: 16,
     },
-<<<<<<< HEAD
-=======
     modalTagsRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -900,15 +750,10 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '600',
     },
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
     modalBtnRow: {
         flexDirection: 'row',
         justifyContent: 'space-evenly',
         alignItems: 'center',
-<<<<<<< HEAD
-        marginTop: 20,
-=======
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
     },
     modalPassBtn: {
         width: 64,
@@ -917,24 +762,18 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         justifyContent: 'center',
         alignItems: 'center',
-<<<<<<< HEAD
-=======
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
         elevation: 5,
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
     },
     modalLikeBtn: {
         width: 80,
         height: 80,
         borderRadius: 40,
         overflow: 'hidden',
-<<<<<<< HEAD
-=======
         elevation: 10,
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
     },
     modalGradBtn: {
         width: '100%',

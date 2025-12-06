@@ -1,5 +1,6 @@
 const { pool: db } = require('../config/database'); 
 
+
 // ========================================
 // 탐색 화면용 추천 사용자 목록 조회
 // GET /api/users/explore
@@ -99,3 +100,4 @@ exports.getNearbyUsers = async (req, res) => {
         return res.status(500).json({ success: false, message: '위치 기반 사용자 조회 실패' });
     }
 };
+

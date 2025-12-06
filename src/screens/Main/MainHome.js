@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -7,95 +7,16 @@ import {
   StyleSheet, 
   Image,
   StatusBar,
-  Alert,              // ★ 추가됨
-  ActivityIndicator   // ★ 추가됨 (로딩바)
+  Dimensions,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as ImagePicker from 'expo-image-picker'; // ★ 추가됨 (갤러리 기능)
-
-// ★ 서버 주소 (핫스팟 IP: 172.20.10.2 확인!)
-const SERVER_URL = "http://172.30.1.61:8000/predict";
 
 export default function MainHome({ navigation }) {
   const activeRouteName = 'MainHome'; 
-  const [analyzing, setAnalyzing] = useState(false); // ★ 분석 중 로딩 상태
 
-  // ============================================================
-  // ★ 1. 성별 선택 팝업 -> 갤러리 열기
-  // ============================================================
-  const pickImage = async () => {
-    Alert.alert(
-      "AI 스타일 분류기",
-      "분석할 모델의 성별을 선택해주세요.",
-      [
-        { text: "남성 패션", onPress: () => openGallery('male') },
-        { text: "여성 패션", onPress: () => openGallery('female') },
-        { text: "취소", style: "cancel" }
-      ]
-    );
-  };
-
-  const openGallery = async (selectedGender) => {
-    // 권한 요청
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
-      return;
-    }
-
-    // 갤러리 열기
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, // 자르기 허용
-      aspect: [3, 4],     
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      // 사진 선택 완료 -> 서버로 전송
-      analyzeStyle(result.assets[0].uri, selectedGender);
-    }
-  };
-
-  // ============================================================
-  // ★ 2. 서버로 사진 전송 및 결과 받기
-  // ============================================================
-  const analyzeStyle = async (photoUri, userGender) => {
-    setAnalyzing(true); // 로딩 시작
-
-    const formData = new FormData();
-    formData.append('file', {
-      uri: photoUri,
-      type: 'image/jpeg',
-      name: 'upload.jpg',
-    });
-    formData.append('gender', userGender);
-
-    try {
-      // 서버 요청
-      const response = await fetch(SERVER_URL, {
-        method: 'POST',
-        body: formData,
-        headers: {},
-      });
-
-      const json = await response.json();
-      
-      if (json.result) {
-        Alert.alert("분석 완료!", `당신의 스타일은\n[ ${json.result} ] 입니다.`);
-      } else {
-        Alert.alert("오류", "분석 결과를 가져오지 못했습니다.");
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert("연결 실패", "서버가 켜져있는지 확인해주세요.\n(IP: 172.20.10.2)");
-    } finally {
-      setAnalyzing(false); // 로딩 끝
-    }
-  };
-
-  // 탭바 스타일 함수
+  // ⭐️ 탭바 아이콘 색상/두께 도우미 함수 (한 번만 선언됨)
   const getTabColor = (routeName) => (routeName === activeRouteName ? '#000000' : '#9ca3af');
   const getTabWeight = (routeName) => (routeName === activeRouteName ? '700' : '500');
 
@@ -103,14 +24,6 @@ export default function MainHome({ navigation }) {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
-      {/* ★ 로딩 화면 (분석 중일 때만 보임) */}
-      {analyzing && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={{color: 'white', marginTop: 10, fontWeight:'bold'}}>AI가 스타일을 분석 중입니다...</Text>
-        </View>
-      )}
-
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -123,7 +36,7 @@ export default function MainHome({ navigation }) {
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Explore')}>
-            <Ionicons name="chatbubble-outline" size={24} color="#000" />
+            <Ionicons name="search-outline" size={24} color="#000" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={24} color="#000" />
@@ -131,14 +44,14 @@ export default function MainHome({ navigation }) {
         </View>
       </View>
 
-      {/* Content */}
+      {/* Main Content Scroll */}
       <ScrollView 
         style={styles.scroll} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.content}>
-          {/* Greeting */}
+          {/* Greeting Section */}
           <View style={styles.greetingSection}>
             <Text style={styles.greetingText}>안녕하세요,</Text>
             <Text style={styles.greetingName}>수민님 👋</Text>
@@ -169,17 +82,17 @@ export default function MainHome({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Main Cards */}
+          {/* Quick Menu Cards */}
           <View style={styles.cardsSection}>
             <Text style={styles.sectionTitle}>빠른 메뉴</Text>
             
             <View style={styles.cards}>
               
-              {/* ★ [수정됨] AI 스타일 분류기 버튼 */}
+              {/* ⭐️ AI 스타일 분류기 버튼 -> 페이지 이동 */}
               <TouchableOpacity
                 style={styles.card}
                 activeOpacity={0.8}
-                onPress={pickImage} // ★ 여기를 pickImage 함수로 연결했습니다!
+                onPress={() => navigation.navigate('Analysis')} 
               >
                 <View style={styles.cardContent}>
                   <View style={[styles.cardIcon, { backgroundColor: '#eef2ff' }]}>
@@ -187,12 +100,13 @@ export default function MainHome({ navigation }) {
                   </View>
                   <View style={styles.cardInfo}>
                     <Text style={styles.cardTitle}>AI 스타일 분류기</Text>
-                    <Text style={styles.cardSubtitle}>내 패션 스타일 찾기</Text>
+                    <Text style={styles.cardSubtitle}>내 패션 스타일 분석하기</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={24} color="#d1d5db" />
                 </View>
               </TouchableOpacity>
 
+              {/* 내 프로필 수정 버튼 */}
               <TouchableOpacity
                 style={styles.card}
                 activeOpacity={0.8}
@@ -204,12 +118,12 @@ export default function MainHome({ navigation }) {
                   </View>
                   <View style={styles.cardInfo}>
                     <Text style={styles.cardTitle}>내 프로필 수정</Text>
-                    <Text style={styles.cardSubtitle}>완성도: 80%</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={24} color="#d1d5db" />
                 </View>
               </TouchableOpacity>
 
+              {/* 매칭 설정 버튼 (예시) */}
               <TouchableOpacity
                 style={styles.card}
                 activeOpacity={0.8}
@@ -221,7 +135,7 @@ export default function MainHome({ navigation }) {
                   </View>
                   <View style={styles.cardInfo}>
                     <Text style={styles.cardTitle}>매칭 설정</Text>
-                    <Text style={styles.cardSubtitle}>선호도 조정하기</Text>
+                    <Text style={styles.cardSubtitle}>나의 취향 선택하기</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={24} color="#d1d5db" />
                 </View>
@@ -261,7 +175,7 @@ export default function MainHome({ navigation }) {
         </View>
       </ScrollView>
 
-      {/* Custom Bottom Bar */}
+      {/* Bottom Tab Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('MainHome')}>
           <Ionicons name="home" size={24} color={getTabColor('MainHome')} />
@@ -274,8 +188,8 @@ export default function MainHome({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Map')}>
-          <Ionicons name="heart-outline" size={24} color={getTabColor('Map')} />
-          <Text style={[styles.tabText, { color: getTabColor('Map'), fontWeight: getTabWeight('Map') }]}>종알림</Text>
+          <Ionicons name="map-outline" size={24} color={getTabColor('Map')} />
+          <Text style={[styles.tabText, { color: getTabColor('Map'), fontWeight: getTabWeight('Map') }]}>위치</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Matches')}>
@@ -299,29 +213,20 @@ export default function MainHome({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
-  // ★ 로딩 오버레이 스타일 추가
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 9999,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 16,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoImage: { width: 60, height: 40, borderRadius: 12 },
-  logoTitle: { fontSize: 20, fontWeight: '600', color: '#000000' },
+  logoImage: { width: 45, height: 30, borderRadius: 8 },
+  logoTitle: { fontSize: 20, fontWeight: '600', color: '#000000', letterSpacing: -0.5 },
   headerRight: { flexDirection: 'row', gap: 12 },
   iconButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   scroll: { flex: 1, backgroundColor: '#ffffff' },
@@ -370,5 +275,4 @@ const styles = StyleSheet.create({
   },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
   tabText: { fontSize: 11, color: '#9ca3af', marginTop: 4, fontWeight: '500' },
-  tabTextActive: { color: '#000000', fontWeight: '700' },
 });

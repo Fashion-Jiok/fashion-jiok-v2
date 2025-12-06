@@ -11,6 +11,10 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// ⭐️여기에 auth 라우터 추가 
+const authRoutes = require('./src/routes/auth');
+app.use('/api/auth', authRoutes);
+
 console.log('---------------------------------');
 console.log('카카오 키 로드 성공:', process.env.KAKAO_REST_API_KEY ? 'O' : 'X');
 console.log('---------------------------------');
@@ -454,7 +458,9 @@ app.post('/api/chat/delete', async (req, res) => {
 });
 
 
+
 app.listen(PORT, () => {
     console.log(`🚀 서버 실행됨 (포트: ${PORT})`);
     console.log(`📊 DB: fashionjiok`);
+    console.log(`🔐 Auth API: /api/auth/login, /api/auth/signup`);
 });

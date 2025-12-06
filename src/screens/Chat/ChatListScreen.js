@@ -15,8 +15,6 @@ import {
     SERVER_URL
 } from '../../services/api';
 
-import BottomTabBar from '../../components/BottomTabBar'; 
-
 const { width } = Dimensions.get('window');
 const itemWidth = (width - 64) / 3; 
 
@@ -121,25 +119,22 @@ export default function ChatListScreen({ navigation }) {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
+            {/* 헤더 */}
             <View style={styles.header}>
-<<<<<<< HEAD
                 <TouchableOpacity 
-        style={styles.headerLeft} 
-        onPress={() => navigation.navigate('MainHome')}
-        activeOpacity={0.7}
-    >
-        <Ionicons name="chevron-back" size={24} color="#000" style={{ marginRight: 4 }} />
-        <Image
-            source={{ uri: 'https://i.pinimg.com/736x/12/b4/d5/12b4d59018dd604fc3b5e287595e4a8c.jpg' }}
-            style={styles.logoImage}
-            resizeMode="cover"
-        />
-        <Text style={styles.logoTitle}>Fashion Jiok</Text>
-    </TouchableOpacity>
+                    style={styles.headerLeft} 
+                    onPress={() => navigation.navigate('MainHome')}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="chevron-back" size={24} color="#000" style={{ marginRight: 4 }} />
+                    <Image
+                        source={{ uri: 'https://i.pinimg.com/736x/12/b4/d5/12b4d59018dd604fc3b5e287595e4a8c.jpg' }}
+                        style={styles.logoImage}
+                        resizeMode="cover"
+                    />
+                    <Text style={styles.logoTitle}>Fashion Jiok</Text>
+                </TouchableOpacity>
                 
-=======
-                <Text style={styles.mainTitle}>채팅</Text>
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
                 <View style={styles.matchCountPill}>
                     <Ionicons name="heart" size={14} color="#ec4899" />
                     <Text style={styles.matchCountText}>{matches.length}명</Text>
@@ -275,6 +270,7 @@ export default function ChatListScreen({ navigation }) {
                 )}
             </ScrollView>
 
+            {/* ⭐️ Bottom Tab Bar (수정됨: Map 탭 추가) */}
             <BottomTabBar 
                 navigation={navigation}
                 getTabColor={getTabColor}
@@ -284,6 +280,36 @@ export default function ChatListScreen({ navigation }) {
     );
 }
 
+// ⭐️ 하단 탭바 컴포넌트 (다른 페이지와 동일하게 수정됨)
+const BottomTabBar = ({ navigation, getTabColor, getTabWeight }) => (
+  <View style={styles.bottomBar}>
+    <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('MainHome')}>
+      <Ionicons name="home-outline" size={24} color={getTabColor('MainHome')} />
+      <Text style={[styles.tabText, { color: getTabColor('MainHome'), fontWeight: getTabWeight('MainHome') }]}>홈</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Explore')}>
+      <Ionicons name="compass-outline" size={24} color={getTabColor('Explore')} />
+      <Text style={[styles.tabText, { color: getTabColor('Explore'), fontWeight: getTabWeight('Explore') }]}>탐색</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Map')}>
+      <Ionicons name="map-outline" size={24} color={getTabColor('Map')} />
+      <Text style={[styles.tabText, { color: getTabColor('Map'), fontWeight: getTabWeight('Map') }]}>위치</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Matches')}>
+      <Ionicons name="people-outline" size={24} color={getTabColor('Matches')} />
+      <Text style={[styles.tabText, { color: getTabColor('Matches'), fontWeight: getTabWeight('Matches') }]}>매칭</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('ChatList')}>
+      <Ionicons name="chatbubbles" size={24} color={getTabColor('ChatList')} />
+      <Text style={[styles.tabText, { color: getTabColor('ChatList'), fontWeight: getTabWeight('ChatList') }]}>채팅</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('MyProfile')}>
+      <Ionicons name="person-outline" size={24} color={getTabColor('MyProfile')} />
+      <Text style={[styles.tabText, { color: getTabColor('MyProfile'), fontWeight: getTabWeight('MyProfile') }]}>나</Text>
+    </TouchableOpacity>
+  </View>
+);
+
 /* ---------- 스타일 ---------- */
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#ffffff' },
@@ -291,43 +317,33 @@ const styles = StyleSheet.create({
     loadingText: { marginTop: 10, fontSize: 16, color: '#666' },
 
     header: {
-<<<<<<< HEAD
        flexDirection: 'row',
-    justifyContent: 'space-between', // 양끝 정렬
-    alignItems: 'center',
-    paddingHorizontal: 24, // 16 -> 24로 변경 (다른 페이지와 통일)
-    paddingTop: Platform.OS === 'ios' ? 60 : 40, // 상단 여백 확보
-    paddingBottom: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-    zIndex: 10,
+       justifyContent: 'space-between',
+       alignItems: 'center',
+       paddingHorizontal: 24,
+       paddingTop: Platform.OS === 'ios' ? 60 : 40,
+       paddingBottom: 16,
+       backgroundColor: '#ffffff',
+       borderBottomWidth: 1,
+       borderBottomColor: '#f3f4f6',
+       zIndex: 10,
     },
     headerLeft: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 8 
-},
-logoImage: { 
-    width: 45, 
-    height: 30, 
-    borderRadius: 8 
-},
-logoTitle: { 
-    fontSize: 20, 
-    fontWeight: '600', 
-    color: '#000000',
-    letterSpacing: -0.5,
-},
-=======
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 50 : 30,
-        paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6',
-        backgroundColor: '#ffffff',
+       flexDirection: 'row', 
+       alignItems: 'center', 
+       gap: 8 
     },
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
-
-    mainTitle: { fontSize: 28, fontWeight: '800', color: '#1f2937' },
+    logoImage: { 
+        width: 45, 
+        height: 30, 
+        borderRadius: 8 
+    },
+    logoTitle: { 
+        fontSize: 20, 
+        fontWeight: '600', 
+        color: '#000000',
+        letterSpacing: -0.5,
+    },
 
     matchCountPill: {
         flexDirection: 'row', alignItems: 'center',
@@ -420,8 +436,30 @@ logoTitle: {
         color: '#fff', fontWeight: '700',
         marginTop: 4, fontSize: 12,
     },
-<<<<<<< HEAD
+
+    // ⭐️ Bottom Bar Style
+    bottomBar: {
+        flexDirection: 'row',
+        backgroundColor: '#ffffff',
+        borderTopWidth: 1,
+        borderTopColor: '#f3f4f6',
+        paddingTop: 12,
+        paddingBottom: 32,
+        paddingHorizontal: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    tabItem: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+    },
+    tabText: {
+        fontSize: 11,
+        marginTop: 4,
+    },
 });
-=======
-});
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a

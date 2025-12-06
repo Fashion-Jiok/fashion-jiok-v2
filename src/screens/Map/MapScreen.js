@@ -580,8 +580,4 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   tabText: { fontSize: 11, marginTop: 4 },
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a

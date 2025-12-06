@@ -2,12 +2,8 @@
 // ⭐️ 한 곳에서만 IP 주소를 관리합니다!
 
 // 1️⃣ 여기만 수정하세요!
-<<<<<<< HEAD
 //const SERVER_IP = '172.30.1.89'; // ← ipconfig에서 확인한 IP로 변경
-const SERVER_IP = '192.168.0.226'; // 
-=======
-const SERVER_IP = '172.30.1.89'; // ← ipconfig에서 확인한 IP로 변경
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
+const SERVER_IP = '192.168.0.11'; // 
 const SERVER_PORT = '3000';
 export const SERVER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
 
@@ -175,26 +171,6 @@ export const fetchUserLocations = async (userId = 1, lat, lon) => {
     throw error;
   }
 };
-<<<<<<< HEAD
-=======
-export const deleteChatRoom = async (roomId) => {
-  try {
-    const response = await fetch(`${SERVER_URL}/api/chat/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId }),
-    });
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('❌ deleteChatRoom 에러:', error);
-    throw error;
-  }
-};
-
-
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a
 // ============================================
 // AI 대화 제안 API (Gemini 서버 호출)
 // ============================================
@@ -221,3 +197,45 @@ export const getAiSuggestions = async (context) => {
     return ["안녕하세요!", "반갑습니다!"];
   }
 };
+
+
+
+// ============================================
+// 🔐 인증 관련 API (로그인/회원가입)
+// ============================================
+
+// [NEW] 로그인 함수
+export const loginUser = async (username, password) => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Login API Error:', error);
+    return { success: false, message: '네트워크 오류' };
+  }
+};
+
+// [NEW] 회원가입 함수
+export const signupUser = async (userData) => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData)
+    });
+    // 상태 코드가 200번대가 아니면 에러 처리
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '회원가입 실패');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Signup API Error:', error);
+    throw error;
+  }
+};
+

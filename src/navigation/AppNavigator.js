@@ -6,11 +6,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import OnboardingScreen from '../screens/Auth/OnboardingScreen';
 import LoginScreen from '../screens/Auth/LoginScreen';
 import HomeLoading from '../screens/Main/HomeLoading';
+import SignupScreen from '../screens/Auth/SignupScreen';
+
 
 // Main Screens (하단바에서 이동할 모든 페이지를 import)
 import MainHome from '../screens/Main/MainHome';
 import ExploreScreen from '../screens/Main/ExploreScreen';
 import MatchesScreen from '../screens/Main/MatchesScreen';
+import AnalysisScreen from '../screens/Main/AnalysisScreen';
 
 // Chat & Profile Screens
 import ChatListScreen from '../screens/Chat/ChatListScreen';
@@ -34,10 +37,12 @@ export default function AppNavigator() {
       >
         {/* Auth Flow */}
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Signup" component={SignupScreen} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="HomeLoading" component={HomeLoading} />
         {/* Main Pages (하단 바가 포함된 모든 페이지) */}
         <Stack.Screen name="MainHome" component={MainHome} />
+        <Stack.Screen name="Analysis" component={AnalysisScreen} />
         <Stack.Screen name="Explore" component={ExploreScreen} />
         <Stack.Screen name="Map" component={MapScreen} /> 
         <Stack.Screen name="Matches" component={MatchesScreen} />
