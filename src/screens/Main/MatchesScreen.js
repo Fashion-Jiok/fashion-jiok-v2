@@ -6,8 +6,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-// ⭐️ API import
-import { fetchMatchCards, sendLike, SERVER_URL } from '../../services/api';
+// ⭐️ API import (경로 확인 필요)
+import { fetchMatchCards, sendLike } from '../../services/api';
 const MY_USER_ID = 1;
 
 export default function MatchesScreen({ navigation }) {
@@ -143,7 +143,7 @@ export default function MatchesScreen({ navigation }) {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
-      {/* ⭐️ NEW: Fashion Jiok 헤더 추가 */}
+      {/* ⭐️ Header: 다른 페이지와 디자인 통일됨 */}
       <View style={styles.header}>
           <TouchableOpacity 
               style={styles.headerLeft} 
@@ -159,6 +159,7 @@ export default function MatchesScreen({ navigation }) {
               <Text style={styles.logoTitle}>Fashion Jiok</Text>
           </TouchableOpacity>
 
+          {/* 오른쪽 아이콘 영역 (매칭화면 편의 기능) */}
           <View style={styles.headerRight}>
               <TouchableOpacity style={styles.iconButton}>
                   <Ionicons name="search-outline" size={24} color="#000" />
@@ -358,10 +359,10 @@ const BottomTabBar = ({ navigation, getTabColor, getTabWeight }) => (
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#ffffff', // 배경 흰색으로 통일
+    backgroundColor: '#ffffff',
   },
   
-  // ⭐️ 헤더 스타일 (ExploreScreen과 통일)
+  // ⭐️ 헤더 스타일: UserProfileScreen과 동일하게 설정
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -416,7 +417,7 @@ const styles = StyleSheet.create({
   // ⭐️ 타이틀 섹션 (헤더 아래)
   pageTitleSection: {
     backgroundColor: '#fff',
-    paddingTop: 16, // 헤더가 있으므로 Top padding 축소
+    paddingTop: 16,
     paddingBottom: 8,
     paddingHorizontal: 20,
   },
@@ -434,7 +435,7 @@ const styles = StyleSheet.create({
   // ⭐️ 나를 찜한 사람들 섹션
   likedMeSection: {
     backgroundColor: '#fff',
-    paddingTop: 16, // 헤더가 있으므로 Top padding 축소
+    paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
