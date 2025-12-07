@@ -29,35 +29,51 @@ if (apiKey) {
 }
 const MODEL_NAME = "gemini-2.5-flash";
 // ============================================
-// API 1: 탐색 화면 - 사용자 목록 (좋아요 상태 포함)
+// API 1: 탐색 화면 - 사용자 목록 (다중 스타일 필터 지원)
 // ============================================
 app.get('/api/users/explore', async (req, res) => {
     const myId = parseInt(req.query.userId) || 1;
-    
+    const styleFilter = req.query.style; // "캐주얼,스트릿" 형태로 들어옴
+
     try {
-        const [users] = await pool.query(`
+        let query = `
             SELECT 
                 u.user_id as id,
                 u.name,
                 u.age,
                 u.gender,
                 u.location,
-                u.job as style,
+                u.style,
                 img.image_url as image,
-                FLOOR(RAND() * 30 + 70) as styleScore,
-                JSON_ARRAY(u.job) as tags,
-                -- ⭐️ 내가 이미 좋아요 눌렀는지 확인
                 CASE WHEN l.like_id IS NOT NULL THEN 1 ELSE 0 END as isLiked
             FROM users u
-            LEFT JOIN user_images img ON u.user_id = img.user_id AND img.is_primary = TRUE
-            LEFT JOIN likes l ON l.from_user_id = ? AND l.to_user_id = u.user_id
-            WHERE u.is_active = TRUE AND u.user_id != ?
-            ORDER BY RAND()
-            LIMIT 20
-        `, [myId, myId]);
-        
-        console.log(`✅ [EXPLORE] ${users.length}명 조회 완료`);
+            LEFT JOIN user_images img 
+                ON u.user_id = img.user_id AND img.is_primary = TRUE
+            LEFT JOIN likes l 
+                ON l.from_user_id = ? AND l.to_user_id = u.user_id
+            WHERE u.is_active = TRUE 
+              AND u.user_id != ?
+        `;
+
+        const params = [myId, myId];
+
+        // ✅ 다중 스타일 필터 지원 (IN 쿼리)
+        if (styleFilter && styleFilter !== '전체') {
+            const styles = styleFilter.split(',').map(s => s.trim());
+            const placeholders = styles.map(() => '?').join(',');
+            query += ` AND u.style IN (${placeholders}) `;
+            params.push(...styles);
+            
+            console.log('🎨 [EXPLORE] 필터 스타일:', styles);
+        }
+
+        query += ` ORDER BY RAND() LIMIT 10 `;
+
+        const [users] = await pool.query(query, params);
+
+        console.log(`🎨 [EXPLORE] 스타일=${styleFilter || '전체'} | ${users.length}명 조회됨`);
         res.json(users);
+        
     } catch (err) {
         console.error('❌ [EXPLORE] 에러:', err);
         res.status(500).json({ error: 'DB 조회 실패' });

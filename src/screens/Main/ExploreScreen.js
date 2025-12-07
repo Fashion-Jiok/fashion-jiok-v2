@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { fetchExploreUsers, sendLike } from '../../services/api'; 
 
+
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
 const MY_USER_ID = 1;
@@ -20,17 +21,29 @@ export default function ExploreScreen({ navigation }) {
     // 모달 관련 상태
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState(null); 
+    const [filterVisible, setFilterVisible] = useState(false);
+    const [selectedStyles, setSelectedStyles] = useState([]);
 
-    const loadUsers = async () => {
+    // 스타일 토글
+    const toggleStyle = (style) => {
+        if (selectedStyles.includes(style)) {
+            setSelectedStyles(selectedStyles.filter(s => s !== style));
+        } else {
+            setSelectedStyles([...selectedStyles, style]);
+        }
+    };
+
+    // ✅ loadUsers에 스타일 파라미터 추가
+    const loadUsers = async (styles = []) => {
         setLoading(true);
         try {
-            const data = await fetchExploreUsers(MY_USER_ID);
+            const data = await fetchExploreUsers(MY_USER_ID, styles);
             setProfiles(data || []); 
             
-            const alreadyLiked = data.filter(u => u.isLiked).map(u => u.id);
+            const alreadyLiked = (data || []).filter(u => u.isLiked).map(u => u.id);
             setLikedProfiles(alreadyLiked);
             
-            console.log('✅ [EXPLORE] 이미 좋아요한 사람:', alreadyLiked);
+            console.log('✅ [EXPLORE] 로드 완료, 스타일:', styles.length > 0 ? styles : '전체');
         } catch (error) {
             console.error("Error loading users:", error);
             setProfiles([]);
@@ -40,8 +53,26 @@ export default function ExploreScreen({ navigation }) {
     };
 
     useEffect(() => {
-        loadUsers(); 
+        loadUsers(); // 초기 로드 (전체)
     }, []);
+
+    // ✅ 필터 적용 함수 - API 재호출
+    const applyFilter = () => {
+        setFilterVisible(false);
+        loadUsers(selectedStyles); // 선택된 스타일로 API 재호출
+    };
+
+    // ✅ 필터 초기화
+    const resetFilter = () => {
+        setSelectedStyles([]);
+        setFilterVisible(false);
+        loadUsers([]); // 전체 다시 로드
+    };
+
+    // ✅ 새로고침 - 현재 필터 유지
+    const handleRefresh = () => {
+        loadUsers(selectedStyles);
+    };
     
     const toggleLike = async (targetUserId) => {
         const isCurrentlyLiked = likedProfiles.includes(targetUserId);
@@ -92,10 +123,6 @@ export default function ExploreScreen({ navigation }) {
             setLikedProfiles(likedProfiles.filter(id => id !== targetUserId));
             Alert.alert("오류", "좋아요 전송에 실패했습니다.");
         }
-    };
-
-    const handleRefresh = () => {
-        loadUsers(); 
     };
     
     // 나를 좋아요한 사람 클릭 시 모달 열기
@@ -186,10 +213,29 @@ export default function ExploreScreen({ navigation }) {
                 <View style={styles.pageTitleContainer}>
                     <View>
                         <Text style={styles.headerTitle}>스타일 탐색</Text>
-                        <Text style={styles.headerSubtitle}>취향이 맞는 패션 피플을 찾아보세요</Text>
+                        <Text style={styles.headerSubtitle}>
+                            {selectedStyles.length > 0 
+                                ? `${selectedStyles.join(', ')} 스타일` 
+                                : '취향이 맞는 패션 피플을 찾아보세요'}
+                        </Text>
                     </View>
-                    <TouchableOpacity style={styles.filterButton}>
-                        <Ionicons name="options-outline" size={24} color="#1a1a1a" />
+                    <TouchableOpacity 
+                        style={[
+                            styles.filterButton,
+                            selectedStyles.length > 0 && styles.filterButtonActive
+                        ]}
+                        onPress={() => setFilterVisible(true)}
+                    >
+                        <Ionicons 
+                            name="options-outline" 
+                            size={24} 
+                            color={selectedStyles.length > 0 ? '#fff' : '#1a1a1a'} 
+                        />
+                        {selectedStyles.length > 0 && (
+                            <View style={styles.filterBadge}>
+                                <Text style={styles.filterBadgeText}>{selectedStyles.length}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -226,11 +272,6 @@ export default function ExploreScreen({ navigation }) {
                                                     <Text style={styles.likedMeText}>나를 좋아요!</Text>
                                                 </View>
                                             )}
-                                            
-                                            {/* ⭐️ [수정됨] 매칭 점수 배지 제거 (80% 등) */}
-                                            {/* <View style={styles.matchBadge}>
-                                                <Text style={styles.matchText}>{profile.styleScore || 75}%</Text>
-                                            </View> */}
 
                                             {/* Like Button */}
                                             {!likedMe && (
@@ -280,7 +321,20 @@ export default function ExploreScreen({ navigation }) {
                         
                         {profiles.length === 0 && (
                              <View style={styles.emptyState}>
-                                <Text style={styles.emptyText}>현재 탐색할 프로필이 없습니다. 😭</Text>
+                                <Ionicons name="search-outline" size={48} color="#d1d5db" />
+                                <Text style={styles.emptyText}>
+                                    {selectedStyles.length > 0 
+                                        ? `'${selectedStyles.join(', ')}' 스타일의 프로필이 없습니다.`
+                                        : '현재 탐색할 프로필이 없습니다.'}
+                                </Text>
+                                {selectedStyles.length > 0 && (
+                                    <TouchableOpacity 
+                                        style={styles.emptyResetBtn}
+                                        onPress={resetFilter}
+                                    >
+                                        <Text style={styles.emptyResetText}>필터 초기화</Text>
+                                    </TouchableOpacity>
+                                )}
                              </View>
                         )}
 
@@ -368,6 +422,71 @@ export default function ExploreScreen({ navigation }) {
                 )}
             </Modal>
 
+            {/* ✅ 필터 모달 - 초기화/적용 버튼 추가 */}
+            <Modal
+                visible={filterVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setFilterVisible(false)}
+            >
+                <View style={styles.filterOverlay}>
+                    <View style={styles.filterContent}>
+                        <View style={styles.filterHeader}>
+                            <Text style={styles.filterTitle}>스타일 선택</Text>
+                            <TouchableOpacity onPress={() => setFilterVisible(false)}>
+                                <Ionicons name="close" size={24} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {["캐주얼", "스트릿", "유니크", "스포티", "미니멀", "걸리시"].map(style => (
+                            <TouchableOpacity 
+                                key={style} 
+                                onPress={() => toggleStyle(style)} 
+                                style={[
+                                    styles.filterItem,
+                                    selectedStyles.includes(style) && styles.filterItemActive
+                                ]}
+                            >
+                                <View style={[
+                                    styles.filterCheckbox,
+                                    selectedStyles.includes(style) && styles.filterCheckboxActive
+                                ]}>
+                                    {selectedStyles.includes(style) && (
+                                        <Ionicons name="checkmark" size={16} color="#fff" />
+                                    )}
+                                </View>
+                                <Text style={[
+                                    styles.filterStyleText,
+                                    selectedStyles.includes(style) && styles.filterStyleTextActive
+                                ]}>
+                                    {style}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+
+                        <View style={styles.filterBtnRow}>
+                            {/* 초기화 버튼 */}
+                            <TouchableOpacity
+                                style={styles.filterResetBtn}
+                                onPress={resetFilter}
+                            >
+                                <Text style={styles.filterResetText}>초기화</Text>
+                            </TouchableOpacity>
+
+                            {/* 적용 버튼 */}
+                            <TouchableOpacity
+                                style={styles.filterApplyBtn}
+                                onPress={applyFilter}
+                            >
+                                <Text style={styles.filterApplyText}>
+                                    적용하기 {selectedStyles.length > 0 && `(${selectedStyles.length})`}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Bottom Tab Bar */}
             <View style={styles.bottomBar}>
                 <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('MainHome')}>
@@ -404,7 +523,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#ffffff',
     },
-    // 헤더 스타일 통합
+    // 헤더 스타일
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -461,6 +580,33 @@ const styles = StyleSheet.create({
     headerSubtitle: {
         fontSize: 14,
         color: '#6b7280'
+    },
+    filterButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#f3f4f6',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    filterButtonActive: {
+        backgroundColor: '#1a1a1a',
+    },
+    filterBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: '#ec4899',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    filterBadgeText: {
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: '700',
     },
     
     // Loading & Content
@@ -532,25 +678,6 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
     },
-    // ⭐️ [수정됨] matchBadge 스타일은 사용되지 않으므로 주석 처리 또는 삭제 가능
-    /*
-    matchBadge: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
-    },
-    matchText: {
-        color: '#a855f7',
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    */
     likeButton: {
         position: 'absolute',
         bottom: 8,
@@ -642,6 +769,124 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    
+    // ✅ 필터 모달 스타일
+    filterOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    filterContent: {
+        backgroundColor: '#fff',
+        width: '85%',
+        borderRadius: 20,
+        padding: 24,
+    },
+    filterHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    filterTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1a1a1a',
+    },
+    filterItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        marginBottom: 8,
+        borderRadius: 12,
+        backgroundColor: '#f9fafb',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+    },
+    filterItemActive: {
+        backgroundColor: '#fce7f3',
+        borderColor: '#ec4899',
+    },
+    filterCheckbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        backgroundColor: '#e5e7eb',
+        marginRight: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    filterCheckboxActive: {
+        backgroundColor: '#ec4899',
+    },
+    filterStyleText: {
+        fontSize: 16,
+        color: '#4b5563',
+        fontWeight: '500',
+    },
+    filterStyleTextActive: {
+        color: '#ec4899',
+        fontWeight: '600',
+    },
+    filterBtnRow: {
+        flexDirection: 'row',
+        marginTop: 20,
+        gap: 10,
+    },
+    filterResetBtn: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        backgroundColor: '#fff',
+    },
+    filterResetText: {
+        color: '#6b7280',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    filterApplyBtn: {
+        flex: 2,
+        backgroundColor: '#1a1a1a',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    filterApplyText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+
+    // Empty State
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 50,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#9ca3af',
+        marginTop: 12,
+        textAlign: 'center',
+    },
+    emptyResetBtn: {
+        marginTop: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        backgroundColor: '#f3f4f6',
+        borderRadius: 20,
+    },
+    emptyResetText: {
+        color: '#6b7280',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+
+    // Bottom Bar
     bottomBar: {
         flexDirection: 'row',
         backgroundColor: '#ffffff',
@@ -666,16 +911,8 @@ const styles = StyleSheet.create({
         fontSize: 11,
         marginTop: 4,
     },
-    emptyState: {
-        alignItems: 'center',
-        paddingVertical: 50,
-    },
-    emptyText: {
-        fontSize: 16,
-        color: '#9ca3af',
-    },
     
-    // 모달 스타일
+    // 프로필 상세 모달 스타일
     modalContainer: {
         flex: 1,
         backgroundColor: '#000',
