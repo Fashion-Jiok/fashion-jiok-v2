@@ -28,12 +28,13 @@ if (apiKey) {
     console.log('Gemini 키 로드 성공: X');
 }
 const MODEL_NAME = "gemini-2.5-flash";
+
 // ============================================
-// API 1: 탐색 화면 - 사용자 목록 (다중 스타일 필터 지원)
+// API 1: 탐색 화면 - 사용자 목록 (수정됨)
 // ============================================
 app.get('/api/users/explore', async (req, res) => {
     const myId = parseInt(req.query.userId) || 1;
-    const styleFilter = req.query.style; // "캐주얼,스트릿" 형태로 들어옴
+    const styleFilter = req.query.style;
 
     try {
         let query = `
@@ -43,7 +44,7 @@ app.get('/api/users/explore', async (req, res) => {
                 u.age,
                 u.gender,
                 u.location,
-                u.style,
+                u.job as style,  -- 👈 [중요] u.style을 u.job으로 변경해야 에러가 안 납니다!
                 img.image_url as image,
                 CASE WHEN l.like_id IS NOT NULL THEN 1 ELSE 0 END as isLiked
             FROM users u
@@ -57,21 +58,17 @@ app.get('/api/users/explore', async (req, res) => {
 
         const params = [myId, myId];
 
-        // ✅ 다중 스타일 필터 지원 (IN 쿼리)
+        // 필터 로직도 job(style) 기준으로 동작
         if (styleFilter && styleFilter !== '전체') {
             const styles = styleFilter.split(',').map(s => s.trim());
             const placeholders = styles.map(() => '?').join(',');
-            query += ` AND u.style IN (${placeholders}) `;
+            query += ` AND u.job IN (${placeholders}) `; // 👈 여기도 u.style -> u.job 변경
             params.push(...styles);
-            
-            console.log('🎨 [EXPLORE] 필터 스타일:', styles);
         }
 
         query += ` ORDER BY RAND() LIMIT 10 `;
 
         const [users] = await pool.query(query, params);
-
-        console.log(`🎨 [EXPLORE] 스타일=${styleFilter || '전체'} | ${users.length}명 조회됨`);
         res.json(users);
         
     } catch (err) {
