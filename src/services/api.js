@@ -1,6 +1,6 @@
 // services/api.js
 // ⭐ IP 주소는 여기 한 곳에서만 관리!
-const SERVER_IP = '172.30.1.55';
+const SERVER_IP = '172.30.1.40';
 const SERVER_PORT = '3000';
 export const SERVER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
 export const fetchExploreUsers = async (userId = 1, styles = []) => {

@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 
 // ⭐️ 본인 컴퓨터 IP로 변경 (현재 설정된 IP 유지)
-const SERVER_URL = "http://172.30.1.55:8000/predict";
+const SERVER_URL = "http://172.30.1.40:8000/predict";
 
 export default function AnalysisScreen({ navigation }) {
   const [selectedImage, setSelectedImage] = useState(null);

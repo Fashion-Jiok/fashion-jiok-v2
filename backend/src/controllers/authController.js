@@ -1,231 +1,108 @@
-// backend/src/controllers/authController.js
 const { pool } = require('../config/database');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 // ============================================
-// 회원가입
+// 1. 회원가입 (Signup)
 // ============================================
 exports.signup = async (req, res) => {
     console.log('📝 [Signup Request]:', req.body);
-    
-    const { username, password, name, phone, age, job, gender, location, education, bio } = req.body;
 
-    // 입력 검증
-    if (!username || !password || !name) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '아이디, 비밀번호, 이름은 필수입니다.' 
-        });
-    }
+    // 프론트엔드에서 username, password 등을 보내줍니다.
+    // DB에는 phone_number 컬럼이 있으므로, username 값을 phone_number에 넣습니다.
+    const { username, password, name, age, job, location, phone } = req.body;
 
-    if (!age) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '나이는 필수입니다.' 
-        });
-    }
+    // 전화번호가 별도로 오면 그걸 쓰고, 없으면 username(아이디)을 전화번호 대용으로 사용
+    const phoneNumber = phone || username; 
 
     try {
-        // 중복 아이디 체크
+        // 1. 중복 확인 (phone_number 컬럼 확인)
         const [existing] = await pool.query(
-            'SELECT user_id FROM users WHERE username = ?', 
-            [username]
+            `SELECT user_id FROM users WHERE phone_number = ?`,
+            [phoneNumber]
         );
-        
+
         if (existing.length > 0) {
-            console.log('🚫 중복 아이디:', username);
-            return res.status(409).json({ 
-                success: false, 
-                message: '이미 존재하는 아이디입니다.' 
-            });
+            return res.status(400).json({ error: "이미 존재하는 ID(전화번호)입니다." });
         }
 
-        // 전화번호 중복 체크
-        if (phone) {
-            const [existingPhone] = await pool.query(
-                'SELECT user_id FROM users WHERE phone_number = ?', 
-                [phone]
-            );
-            
-            if (existingPhone.length > 0) {
-                console.log('🚫 중복 전화번호:', phone);
-                return res.status(409).json({ 
-                    success: false, 
-                    message: '이미 등록된 전화번호입니다.' 
-                });
-            }
+        // 2. 비밀번호 암호화
+        let passwordHash = password;
+        try {
+            const salt = await bcrypt.genSalt(10);
+            passwordHash = await bcrypt.hash(password, salt);
+        } catch (e) {
+            console.log("⚠️ 암호화 실패, 평문 저장");
         }
 
-        // 비밀번호 해싱
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // 3. DB 저장 (username 컬럼 제거 -> phone_number 사용)
+        const [result] = await pool.query(
+            `INSERT INTO users 
+            (phone_number, password_hash, name, age, job, location, profile_completed, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, TRUE, TRUE)`,
+            [phoneNumber, passwordHash, name, age || 20, job || 'Student', location || 'Seoul']
+        );
 
-        // ⭐️ password_hash 컬럼도 추가!
-        const query = `
-            INSERT INTO users (
-                username, 
-                password,
-                password_hash,
-                phone_number, 
-                name, 
-                age, 
-                gender, 
-                location, 
-                job, 
-                education, 
-                bio, 
-                profile_completed, 
-                is_active
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, TRUE)
-        `;
-        
-        const [result] = await pool.query(query, [
-            username,
-            hashedPassword,
-            hashedPassword,  // password_hash에도 동일한 해시값 저장
-            phone || null,
-            name,
-            parseInt(age),
-            gender || 'M',
-            location || null,
-            job || null,
-            education || null,
-            bio || null
-        ]);
+        console.log(`✅ 회원가입 성공: ${name} (${phoneNumber})`);
+        res.json({ success: true, userId: result.insertId });
 
-        console.log('✅ 회원가입 성공:', username, '(ID:', result.insertId, ')');
-
-        res.status(201).json({ 
-            success: true, 
-            message: '회원가입 성공!',
-            user: {
-                id: result.insertId,
-                username,
-                name
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Signup Error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: '서버 오류가 발생했습니다.' 
-        });
+    } catch (err) {
+        console.error('❌ Signup Error:', err);
+        res.status(500).json({ error: "회원가입 중 서버 오류가 발생했습니다." });
     }
 };
 
 // ============================================
-// 로그인
+// 2. 로그인 (Login)
 // ============================================
 exports.login = async (req, res) => {
     console.log('🔑 [Login Request]:', req.body);
     
     const { username, password } = req.body;
-
-    // 입력 검증
-    if (!username || !password) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '아이디와 비밀번호를 입력해주세요.' 
-        });
-    }
+    
+    // DB 컬럼에 맞춰 매핑 (입력받은 ID -> phone_number)
+    const phoneNumber = username;
 
     try {
-        // ⭐️ password 또는 password_hash 둘 다 확인
-        const [rows] = await pool.query(
-            `SELECT 
-                user_id, 
-                username, 
-                password,
-                password_hash,
-                name, 
-                age, 
-                gender, 
-                location, 
-                job, 
-                education, 
-                bio, 
-                phone_number,
-                profile_completed
-             FROM users 
-             WHERE username = ? AND is_active = TRUE`, 
-            [username]
+        // 1. 사용자 조회 (username 컬럼이 없으므로 phone_number로 조회)
+        const [users] = await pool.query(
+            `SELECT * FROM users WHERE phone_number = ?`,
+            [phoneNumber]
         );
 
-        if (rows.length === 0) {
-            console.log('🚫 로그인 실패: 사용자 없음 -', username);
-            return res.status(401).json({ 
-                success: false, 
-                message: '아이디 또는 비밀번호를 확인해주세요.' 
-            });
+        if (users.length === 0) {
+            console.log("❌ 사용자 없음");
+            return res.status(401).json({ error: "존재하지 않는 사용자입니다." });
         }
 
-        const user = rows[0];
+        const user = users[0];
 
-        // ⭐️ password 또는 password_hash 중 있는 것으로 비교
-        const storedPassword = user.password || user.password_hash;
-        const isPasswordValid = await bcrypt.compare(password, storedPassword);
-
-        if (!isPasswordValid) {
-            console.log('🚫 로그인 실패: 비밀번호 불일치 -', username);
-            return res.status(401).json({ 
-                success: false, 
-                message: '아이디 또는 비밀번호를 확인해주세요.' 
-            });
+        // 2. 비밀번호 확인
+        let isMatch = false;
+        if (user.password_hash && user.password_hash.startsWith('$2b$')) {
+            isMatch = await bcrypt.compare(password, user.password_hash);
+        } else {
+            isMatch = (password === user.password_hash);
         }
 
-        // 마지막 로그인 시간 업데이트
-        await pool.query(
-            'UPDATE users SET last_login = NOW() WHERE user_id = ?',
-            [user.user_id]
-        );
+        if (!isMatch) {
+            console.log("❌ 비밀번호 불일치");
+            return res.status(401).json({ error: "비밀번호가 일치하지 않습니다." });
+        }
 
-        // 프로필 이미지 조회
-        const [images] = await pool.query(
-            'SELECT image_url FROM user_images WHERE user_id = ? AND is_primary = TRUE',
-            [user.user_id]
-        );
-
-        console.log('✅ 로그인 성공:', username);
-
-        res.status(200).json({ 
-            success: true, 
-            message: '로그인 성공',
+        // 3. 로그인 성공
+        console.log(`✅ 로그인 성공: ${user.name}`);
+        res.json({
+            success: true,
             user: {
-                id: user.user_id,
-                username: user.username,
+                user_id: user.user_id,
                 name: user.name,
-                age: user.age,
-                gender: user.gender,
                 job: user.job,
-                location: user.location,
-                education: user.education,
-                bio: user.bio,
-                phone_number: user.phone_number,
-                profile_completed: user.profile_completed,
-                profile_image: images[0]?.image_url || null
+                location: user.location
             }
         });
 
-    } catch (error) {
-        console.error('❌ Login Error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: '서버 오류가 발생했습니다.' 
-        });
+    } catch (err) {
+        console.error('❌ Login Error:', err);
+        res.status(500).json({ error: "로그인 중 서버 오류가 발생했습니다." });
     }
-};
-
-// ============================================
-// 전화번호 인증 코드 전송 (기존 기능 유지)
-// ============================================
-exports.sendVerificationCode = async (req, res) => {
-    res.json({ success: true, message: '인증번호가 전송되었습니다.' });
-};
-
-// ============================================
-// 인증 코드 확인 (기존 기능 유지)
-// ============================================
-exports.verifyCode = async (req, res) => {
-    res.json({ success: true, message: '인증이 완료되었습니다.' });
 };

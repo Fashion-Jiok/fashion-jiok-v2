@@ -1,5 +1,5 @@
 -- ========================================
--- 1. 데이터베이스 초기화 (이름 통일: fashionjiok)
+-- 1. 데이터베이스 초기화 (이름: fashionjiok)
 -- ========================================
 DROP DATABASE IF EXISTS fashionjiok;
 CREATE DATABASE IF NOT EXISTS fashionjiok;
@@ -38,9 +38,11 @@ CREATE TABLE user_images (
     image_url VARCHAR(500) NOT NULL,
     image_order INT DEFAULT 0,
     is_primary BOOLEAN DEFAULT FALSE,
+    image_style VARCHAR(100) COMMENT 'AI 스타일 분류 결과',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    INDEX idx_user (user_id)
+    INDEX idx_user (user_id),
+    INDEX idx_style (image_style)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. MBTI 정보 테이블
@@ -190,12 +192,12 @@ CREATE TABLE user_locations (
     user_id INT UNIQUE NOT NULL,
     latitude DECIMAL(10, 8) NOT NULL,
     longitude DECIMAL(11, 8) NOT NULL, 
-    location_point POINT NOT NULL SRID 4326, -- 공간 연산용
+    location_point POINT NOT NULL SRID 4326,
     location_name VARCHAR(100),
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    SPATIAL INDEX idx_location_point (location_point), -- POINT 타입에만 SPATIAL INDEX 적용
-    INDEX idx_lat_lon (latitude, longitude) -- 일반 위경도 값 검색용 인덱스
+    SPATIAL INDEX idx_location_point (location_point),
+    INDEX idx_lat_lon (latitude, longitude)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 15. 차단 사용자 테이블
@@ -231,21 +233,19 @@ CREATE TABLE reports (
 
 
 -- ========================================
--- [DML] 기본 및 더미 데이터 삽입
+-- [DML] 더미 데이터 삽입 (순서 중요!)
 -- ========================================
 
--- 1. 스타일 태그 데이터
+-- 1. 마스터 데이터 (태그, 관심사)
 INSERT INTO style_tags (tag_name, tag_category) VALUES
 ('미니멀', 'basic'), ('모던', 'basic'), ('캐주얼', 'basic'), ('스트리트', 'basic'),
 ('빈티지', 'basic'), ('클래식', 'basic'), ('페미닌', 'basic'), ('스포티', 'basic'),
 ('심플', 'detailed'), ('댄디', 'detailed'), ('로맨틱', 'detailed'), ('힙스터', 'detailed'),
 ('보헤미안', 'detailed'), ('프레피', 'detailed'), ('고프코어', 'detailed'), ('아메카지', 'detailed');
 
--- 2. 관심사 카테고리 데이터
 INSERT INTO interest_categories (category_name) VALUES
 ('게임'), ('집순이/집돌이'), ('아웃도어'), ('문화생활'), ('음식'), ('운동');
 
--- 3. 관심사 아이템 데이터
 INSERT INTO interests (category_id, interest_name) VALUES
 (1, '닌텐도'), (1, 'PC방'), (1, '로블록스'), (1, '오버워치'), (1, 'E-sports'),
 (2, '독서'), (2, '드라마정주행'), (2, '베이킹'), (2, '보드게임'), (2, '식물가꾸기'), (2, '온라인게임'), (2, '요리'), (2, '홈트'),
@@ -255,8 +255,7 @@ INSERT INTO interests (category_id, interest_name) VALUES
 (6, '헬스'), (6, '요가'), (6, '필라테스'), (6, '수영'), (6, '테니스');
 
 
--- 4. 사용자 데이터 (총 33명)
--- 4-1. 기존 멤버 및 신규 멤버 1 (User 1~13)
+-- 2. 사용자 데이터 삽입 (⭐️ 위치 데이터보다 먼저 실행되어야 함)
 INSERT INTO users (phone_number, password_hash, name, age, gender, location, job, education, bio, profile_completed) VALUES
 ('010-1234-5678', '$2b$10$hash1', '민수', 27, 'M', '서울 강남구', '프로덕트 디자이너', '홍익대학교', '패션과 디자인을 사랑합니다.', TRUE),
 ('010-2345-6789', '$2b$10$hash2', '지은', 25, 'F', '서울 마포구', 'UX 디자이너', '이화여대', '감각적인 스타일을 좋아해요.', TRUE),
@@ -270,27 +269,7 @@ INSERT INTO users (phone_number, password_hash, name, age, gender, location, job
 ('010-5002-2002', '$2b$10$hash10', '지아', 29, 'F', '서울 용산구', '전시 큐레이터', '파리 유학파', '예술적 영감을 주고받아요.', TRUE),
 ('010-5003-2003', '$2b$10$hash11', '하은', 23, 'F', '서울 서대문구', '유튜버', '휴학 중', '브이로그 찍는 게 일상이에요.', TRUE),
 ('010-5004-2004', '$2b$10$hash12', '윤아', 27, 'F', '서울 송파구', '플로리스트', '원예학과', '꽃을 만질 때 가장 행복해요. 🌷', TRUE),
-('010-5005-2005', '$2b$10$hash13', '채원', 31, 'F', '서울 종로구', '약사', '약학대학', '조용하고 차분한 데이트 선호.', TRUE);
-
-INSERT INTO user_images (user_id, image_url, image_order, is_primary) VALUES
-(1, 'https://i.pinimg.com/736x/4f/25/42/4f254296535a3ed3386afed0e3ab3860.jpg', 0, TRUE),
-(2, 'https://i.pinimg.com/736x/cf/44/d9/cf44d9bf8c6e22d57891cd8d5d470bfe.jpg', 0, TRUE),
-(2, 'https://i.pinimg.com/1200x/71/02/1a/71021aa608dd13a686e68986b4aa6a2d.jpg', 1, FALSE),
-(3, 'https://i.pinimg.com/736x/d1/4b/0d/d14b0df833edda104295bd28a97de7fc.jpg', 0, TRUE),
-(4, 'https://i.pinimg.com/736x/08/8f/9d/088f9db74d0acaacecb1f460bbf64955.jpg', 0, TRUE),
-(5, 'https://i.pinimg.com/1200x/8d/10/58/8d1058a16d8610a11389577b355c5a6a.jpg', 0, TRUE),
-(6, 'https://i.pinimg.com/1200x/29/00/13/2900138968b8cd944433d62a222ffee9.jpg', 0, TRUE),
-(6, 'https://i.pinimg.com/1200x/a4/d0/55/a4d055246c732c6e22fb7348f8adcc8d.jpg', 1, FALSE),
-(7, 'https://i.pinimg.com/1200x/c7/df/68/c7df68cce3c8660f3ecf7939f87333e2.jpg', 0, TRUE),
-(8, 'https://i.pinimg.com/736x/2a/be/72/2abe7264688ec41c7c9e7418dd351fc2.jpg', 0, TRUE),
-(9, 'https://i.pinimg.com/1200x/37/58/53/3758539461d87ca939fe05273e99b883.jpg', 0, TRUE),
-(10, 'https://i.pinimg.com/1200x/9a/44/e8/9a44e860d3c035e28193a718b666003d.jpg', 0, TRUE),
-(11, 'https://i.pinimg.com/736x/67/cb/59/67cb59377b6308c9f1aa70fba0e14064.jpg', 0, TRUE),
-(12, 'https://i.pinimg.com/1200x/ed/60/b8/ed60b897b30f5cd6c71ab4736c354f39.jpg', 0, TRUE),
-(13, 'https://i.pinimg.com/736x/bf/f6/1f/bff61f66cdb2efffe65e33f5c9a21f8a.jpg', 0, TRUE);
-
--- 4-2. 추가 남성 멤버 (User 14~23)
-INSERT INTO users (phone_number, password_hash, name, age, gender, location, job, education, bio, profile_completed) VALUES
+('010-5005-2005', '$2b$10$hash13', '채원', 31, 'F', '서울 종로구', '약사', '약학대학', '조용하고 차분한 데이트 선호.', TRUE),
 ('010-6001-3001', '$2b$10$hash14', '연준', 26, 'M', '서울 용산구', '브랜드 전략가', '고려대학교', '브랜드의 스토리를 만드는 일을 합니다.', TRUE),
 ('010-6002-3002', '$2b$10$hash15', '다니엘', 26, 'M', '부산 해운대구', '포토그래퍼', '부산예대', '도시의 순간을 담습니다.', TRUE),
 ('010-6003-3003', '$2b$10$hash16', '유진', 31, 'M', '서울 종로구', '변호사', '서울대학교', '차분하지만 유머를 좋아해요.', TRUE),
@@ -300,22 +279,7 @@ INSERT INTO users (phone_number, password_hash, name, age, gender, location, job
 ('010-6007-3007', '$2b$10$hash20', '승호', 27, 'M', '서울 강서구', '체대생 · 헬스 트레이너', '체육대학교', '운동과 균형을 추구합니다.', TRUE),
 ('010-6008-3008', '$2b$10$hash21', '레이', 23, 'M', '경기 성남시', '패션 쇼 모델', '패션아카데미', '런웨이 위의 자신감을 사랑해요.', TRUE),
 ('010-6009-3009', '$2b$10$hash22', '정후', 32, 'M', '서울 광진구', '프론트엔드 개발자', '건국대학교', 'UI/UX에 진심입니다.', TRUE),
-('010-6010-3010', '$2b$10$hash23', '주연', 35, 'M', '경기 고양시', '일러스트레이터', '예술학원', '감성을 그려내는 사람.', TRUE);
-
-INSERT INTO user_images (user_id, image_url, image_order, is_primary) VALUES
-(14, 'https://i.pinimg.com/736x/27/30/6f/27306fc55f4d3f04ecf5a0d448fc97e1.jpg', 0, TRUE),
-(15, 'https://i.pinimg.com/1200x/77/7f/19/777f190e01c72852677b6a1d1ef39dc9.jpg', 0, TRUE),
-(16, 'https://i.pinimg.com/736x/23/a2/a3/23a2a30089cd3a8137c52d493c2ccd39.jpg', 0, TRUE),
-(17, 'https://i.pinimg.com/736x/ce/65/b7/ce65b7df4e538f11cb786642655d92f5.jpg', 0, TRUE),
-(18, 'https://i.pinimg.com/1200x/4f/8f/b4/4f8fb476d39fe17ae1dfadbec3df0e59.jpg', 0, TRUE),
-(19, 'https://i.pinimg.com/736x/39/2b/4e/392b4e4674d7821e2d136c06242dce34.jpg', 0, TRUE),
-(20, 'https://i.pinimg.com/736x/cd/29/8c/cd298cfc18586e8a78fbc3fd7b208b53.jpg', 0, TRUE),
-(21, 'https://i.pinimg.com/1200x/a1/5d/a2/a15da27902c1e34b6afd2f2eb4a00b25.jpg', 0, TRUE),
-(22, 'https://i.pinimg.com/736x/5e/e0/ad/5ee0ad56133df3270698ca71d3e6b50e.jpg', 0, TRUE),
-(23, 'https://i.pinimg.com/736x/95/ba/0c/95ba0c563272c9bb05b6ddabb50c66ff.jpg', 0, TRUE);
-
--- 4-3. 추가 여성 멤버 (User 24~33)
-INSERT INTO users (phone_number, password_hash, name, age, gender, location, job, education, bio, profile_completed) VALUES
+('010-6010-3010', '$2b$10$hash23', '주연', 35, 'M', '경기 고양시', '일러스트레이터', '예술학원', '감성을 그려내는 사람.', TRUE),
 ('010-7001-4001', '$2b$10$hash24', '가윤', 26, 'F', '서울 서초구', '브랜딩 디자이너', '이화여자대학교', '디테일에 강한 감성파.', TRUE),
 ('010-7002-4002', '$2b$10$hash25', '소정', 30, 'F', '경기 안양시', '약사', '성균관대학교', '신뢰와 안정감을 중요시해요.', TRUE),
 ('010-7003-4003', '$2b$10$hash26', '하린', 24, 'F', '대전 유성구', '영상 에디터', '대전예대', '감각적인 무드의 영상 좋아해요.', TRUE),
@@ -327,20 +291,135 @@ INSERT INTO users (phone_number, password_hash, name, age, gender, location, job
 ('010-7009-4009', '$2b$10$hash32', '이안', 25, 'F', '서울 은평구', '웹디자이너', '디지털디자인학과', '깔끔·심플한 디자인 추구.', TRUE),
 ('010-7010-4010', '$2b$10$hash33', '소윤', 30, 'F', '경기 파주시', '피트니스 코치', '체대', '건강한 루틴을 나누고 싶어요.', TRUE);
 
-INSERT INTO user_images (user_id, image_url, image_order, is_primary) VALUES
-(24, 'https://i.pinimg.com/1200x/ec/ff/17/ecff17a8b16e6982c26c7242ed2a536f.jpg', 0, TRUE),
-(25, 'https://i.pinimg.com/736x/ee/80/7d/ee807d3f3e2a0509c8e5e8387ef7eaa9.jpg', 0, TRUE),
-(26, 'https://kittenalarm.com/cdn/shop/files/Patchwork-Mesh-Top_1000x.jpg?v=1756804592', 0, TRUE),
-(27, 'https://i.pinimg.com/1200x/78/de/f5/78def5256045152caf0ef1615ae99ba8.jpg', 0, TRUE),
-(28, 'https://i.pinimg.com/736x/40/10/cd/4010cd372ad8386d07e91fe591e0d84d.jpg', 0, TRUE),
-(29, 'https://i.pinimg.com/1200x/52/d3/28/52d32833e1ff4e5e297abd2c7aa5db14.jpg', 0, TRUE),
-(30, 'https://i.pinimg.com/1200x/59/8e/eb/598eeb5824f6f586880057d6fd20f3fb.jpg', 0, TRUE),
-(31, 'https://i.pinimg.com/736x/15/6e/c8/156ec8d9653dffd20ae4d075200dbc80.jpg', 0, TRUE),
-(32, 'https://i.pinimg.com/1200x/f5/2b/78/f52b78e3577637099086d0c2ba1932f9.jpg', 0, TRUE),
-(33, 'https://i.pinimg.com/736x/26/e0/d6/26e0d6467594d3cfb716511ea241d467.jpg', 0, TRUE);
+
+-- 3. 사용자 위치 데이터 삽입 (⭐️ 좌표 순서 수정됨: POINT(위도 경도))
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(1, 37.4979, 127.0276, ST_GeomFromText('POINT(37.4979 127.0276)', 4326), '서울 강남구'),
+(9, 37.5012, 127.0301, ST_GeomFromText('POINT(37.5012 127.0301)', 4326), '서울 강남구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(2, 37.5663, 126.9019, ST_GeomFromText('POINT(37.5663 126.9019)', 4326), '서울 마포구'),
+(6, 37.5701, 126.9051, ST_GeomFromText('POINT(37.5701 126.9051)', 4326), '서울 마포구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(3, 37.5145, 127.1061, ST_GeomFromText('POINT(37.5145 127.1061)', 4326), '서울 송파구'),
+(12, 37.5178, 127.1123, ST_GeomFromText('POINT(37.5178 127.1123)', 4326), '서울 송파구'),
+(27, 37.5201, 127.1089, ST_GeomFromText('POINT(37.5201 127.1089)', 4326), '서울 송파구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(4, 37.5636, 127.0369, ST_GeomFromText('POINT(37.5636 127.0369)', 4326), '서울 성동구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(5, 37.5264, 126.8964, ST_GeomFromText('POINT(37.5264 126.8964)', 4326), '서울 영등포구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(7, 37.3826, 127.1188, ST_GeomFromText('POINT(37.3826 127.1188)', 4326), '성남 분당구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(8, 37.4784, 126.9516, ST_GeomFromText('POINT(37.4784 126.9516)', 4326), '서울 관악구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(10, 37.5326, 126.9900, ST_GeomFromText('POINT(37.5326 126.9900)', 4326), '서울 용산구'),
+(14, 37.5352, 126.9945, ST_GeomFromText('POINT(37.5352 126.9945)', 4326), '서울 용산구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(11, 37.5791, 126.9368, ST_GeomFromText('POINT(37.5791 126.9368)', 4326), '서울 서대문구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(13, 37.5729, 126.9793, ST_GeomFromText('POINT(37.5729 126.9793)', 4326), '서울 종로구'),
+(16, 37.5756, 126.9834, ST_GeomFromText('POINT(37.5756 126.9834)', 4326), '서울 종로구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(15, 35.1631, 129.1639, ST_GeomFromText('POINT(35.1631 129.1639)', 4326), '부산 해운대구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(17, 35.8582, 128.6311, ST_GeomFromText('POINT(35.8582 128.6311)', 4326), '대구 수성구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(18, 37.5636, 126.9970, ST_GeomFromText('POINT(37.5636 126.9970)', 4326), '서울 중구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(19, 37.4105, 126.6783, ST_GeomFromText('POINT(37.4105 126.6783)', 4326), '인천 연수구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(20, 37.5509, 126.8495, ST_GeomFromText('POINT(37.5509 126.8495)', 4326), '서울 강서구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(21, 37.4201, 127.1262, ST_GeomFromText('POINT(37.4201 127.1262)', 4326), '경기 성남시');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(22, 37.5384, 127.0822, ST_GeomFromText('POINT(37.5384 127.0822)', 4326), '서울 광진구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(23, 37.6583, 126.8320, ST_GeomFromText('POINT(37.6583 126.8320)', 4326), '경기 고양시');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(24, 37.4837, 127.0324, ST_GeomFromText('POINT(37.4837 127.0324)', 4326), '서울 서초구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(25, 37.3943, 126.9568, ST_GeomFromText('POINT(37.3943 126.9568)', 4326), '경기 안양시');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(26, 36.3621, 127.3565, ST_GeomFromText('POINT(36.3621 127.3565)', 4326), '대전 유성구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(28, 37.5373, 126.7378, ST_GeomFromText('POINT(37.5373 126.7378)', 4326), '인천 계양구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(29, 35.1364, 129.0845, ST_GeomFromText('POINT(35.1364 129.0845)', 4326), '부산 남구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(30, 37.5124, 126.9393, ST_GeomFromText('POINT(37.5124 126.9393)', 4326), '서울 동작구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(31, 37.2636, 127.0286, ST_GeomFromText('POINT(37.2636 127.0286)', 4326), '경기 수원시');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(32, 37.6026, 126.9289, ST_GeomFromText('POINT(37.6026 126.9289)', 4326), '서울 은평구');
+
+INSERT INTO user_locations (user_id, latitude, longitude, location_point, location_name) VALUES
+(33, 37.7600, 126.7800, ST_GeomFromText('POINT(37.7600 126.7800)', 4326), '경기 파주시');
+
+
+-- 4. 사용자 이미지 데이터 (⭐️ image_style 포함)
+INSERT INTO user_images (user_id, image_url, image_order, is_primary, image_style) VALUES
+(1, 'https://i.pinimg.com/736x/4f/25/42/4f254296535a3ed3386afed0e3ab3860.jpg', 0, TRUE, 'Casual'),
+(2, 'https://i.pinimg.com/736x/cf/44/d9/cf44d9bf8c6e22d57891cd8d5d470bfe.jpg', 0, TRUE, 'Feminine Minimal'),
+(2, 'https://i.pinimg.com/1200x/71/02/1a/71021aa608dd13a686e68986b4aa6a2d.jpg', 1, FALSE, 'Feminine Minimal'),
+(3, 'https://i.pinimg.com/736x/d1/4b/0d/d14b0df833edda104295bd28a97de7fc.jpg', 0, TRUE, 'Street Gorpcore'),
+(4, 'https://i.pinimg.com/736x/08/8f/9d/088f9db74d0acaacecb1f460bbf64955.jpg', 0, TRUE, 'Americaji Vintage'),
+(5, 'https://i.pinimg.com/1200x/8d/10/58/8d1058a16d8610a11389577b355c5a6a.jpg', 0, TRUE, 'Minimal Chic Dandy'),
+(6, 'https://i.pinimg.com/1200x/29/00/13/2900138968b8cd944433d62a222ffee9.jpg', 0, TRUE, 'Minimal Chic Dandy'),
+(6, 'https://i.pinimg.com/1200x/a4/d0/55/a4d055246c732c6e22fb7348f8adcc8d.jpg', 1, FALSE, 'Minimal Chic Dandy'),
+(7, 'https://i.pinimg.com/1200x/c7/df/68/c7df68cce3c8660f3ecf7939f87333e2.jpg', 0, TRUE, 'Americaji Vintage'),
+(8, 'https://i.pinimg.com/736x/2a/be/72/2abe7264688ec41c7c9e7418dd351fc2.jpg', 0, TRUE, 'Street Gorpcore'),
+(9, 'https://i.pinimg.com/1200x/37/58/53/3758539461d87ca939fe05273e99b883.jpg', 0, TRUE, 'Feminine Minimal'),
+(10, 'https://i.pinimg.com/1200x/9a/44/e8/9a44e860d3c035e28193a718b666003d.jpg', 0, TRUE, 'Feminine Minimal'),
+(11, 'https://i.pinimg.com/736x/67/cb/59/67cb59377b6308c9f1aa70fba0e14064.jpg', 0, TRUE, 'Lovely'),
+(12, 'https://i.pinimg.com/1200x/ed/60/b8/ed60b897b30f5cd6c71ab4736c354f39.jpg', 0, TRUE, 'Casual Street'),
+(13, 'https://i.pinimg.com/736x/bf/f6/1f/bff61f66cdb2efffe65e33f5c9a21f8a.jpg', 0, TRUE, 'Feminine Minimal'),
+(14, 'https://i.pinimg.com/736x/27/30/6f/27306fc55f4d3f04ecf5a0d448fc97e1.jpg', 0, TRUE, 'Street Gorpcore'),
+(15, 'https://i.pinimg.com/1200x/77/7f/19/777f190e01c72852677b6a1d1ef39dc9.jpg', 0, TRUE, 'Americaji Vintage'),
+(16, 'https://i.pinimg.com/736x/23/a2/a3/23a2a30089cd3a8137c52d493c2ccd39.jpg', 0, TRUE, 'Street Gorpcore'),
+(17, 'https://i.pinimg.com/736x/ce/65/b7/ce65b7df4e538f11cb786642655d92f5.jpg', 0, TRUE, 'Casual'),
+(18, 'https://i.pinimg.com/1200x/4f/8f/b4/4f8fb476d39fe17ae1dfadbec3df0e59.jpg', 0, TRUE, 'Street Gorpcore'),
+(19, 'https://i.pinimg.com/736x/39/2b/4e/392b4e4674d7821e2d136c06242dce34.jpg', 0, TRUE, 'Americaji Vintage'),
+(20, 'https://i.pinimg.com/736x/cd/29/8c/cd298cfc18586e8a78fbc3fd7b208b53.jpg', 0, TRUE, 'Minimal Chic Dandy'),
+(21, 'https://i.pinimg.com/1200x/a1/5d/a2/a15da27902c1e34b6afd2f2eb4a00b25.jpg', 0, TRUE, 'Americaji Vintage'),
+(22, 'https://i.pinimg.com/736x/5e/e0/ad/5ee0ad56133df3270698ca71d3e6b50e.jpg', 0, TRUE, 'Street Gorpcore'),
+(23, 'https://i.pinimg.com/736x/95/ba/0c/95ba0c563272c9bb05b6ddabb50c66ff.jpg', 0, TRUE, 'Street Gorpcore'),
+(24, 'https://i.pinimg.com/1200x/ec/ff/17/ecff17a8b16e6982c26c7242ed2a536f.jpg', 0, TRUE, 'Casual Street'),
+(25, 'https://i.pinimg.com/736x/ee/80/7d/ee807d3f3e2a0509c8e5e8387ef7eaa9.jpg', 0, TRUE, 'Lovely'),
+(26, 'https://kittenalarm.com/cdn/shop/files/Patchwork-Mesh-Top_1000x.jpg?v=1756804592', 0, TRUE, 'Casual Street'),
+(27, 'https://i.pinimg.com/1200x/78/de/f5/78def5256045152caf0ef1615ae99ba8.jpg', 0, TRUE, 'Casual Street'),
+(28, 'https://i.pinimg.com/736x/40/10/cd/4010cd372ad8386d07e91fe591e0d84d.jpg', 0, TRUE, 'Casual Street'),
+(29, 'https://i.pinimg.com/1200x/52/d3/28/52d32833e1ff4e5e297abd2c7aa5db14.jpg', 0, TRUE, 'Unique'),
+(30, 'https://i.pinimg.com/1200x/59/8e/eb/598eeb5824f6f586880057d6fd20f3fb.jpg', 0, TRUE, 'Unique'),
+(31, 'https://i.pinimg.com/736x/15/6e/c8/156ec8d9653dffd20ae4d075200dbc80.jpg', 0, TRUE, 'Casual Street'),
+(32, 'https://i.pinimg.com/1200x/f5/2b/78/f52b78e3577637099086d0c2ba1932f9.jpg', 0, TRUE, 'Casual Street'),
+(33, 'https://i.pinimg.com/736x/26/e0/d6/26e0d6467594d3cfb716511ea241d467.jpg', 0, TRUE, 'Casual Street');
 
 -- 5. 좋아요 더미 데이터 (테스트용)
--- ⭐️ 짝수 번호 유저들이 나(user_id=1)를 좋아하도록 설정
 INSERT INTO likes (from_user_id, to_user_id) VALUES 
 (2, 1), (4, 1), (6, 1), (8, 1), (10, 1),
 (12, 1), (14, 1), (16, 1), (18, 1), (20, 1),
@@ -358,12 +437,13 @@ SELECT 'user_images', COUNT(*) FROM user_images
 UNION ALL
 SELECT 'likes', COUNT(*) FROM likes;
 
--- 유저 및 이미지 정보 샘플 확인
+-- 유저 및 이미지 정보 샘플 확인 (스타일 포함)
 SELECT 
     u.user_id, 
     u.name, 
     u.gender, 
-    i.image_url 
+    i.image_url,
+    i.image_style
 FROM users u
 LEFT JOIN user_images i ON u.user_id = i.user_id
 ORDER BY u.user_id
@@ -377,8 +457,4 @@ SELECT
 FROM likes l
 JOIN users u1 ON l.from_user_id = u1.user_id
 JOIN users u2 ON l.to_user_id = u2.user_id
-<<<<<<< HEAD
-WHERE l.to_user_id = 1;3
-=======
 WHERE l.to_user_id = 1;
->>>>>>> 5d45d390036bfd33e1776bf9a6acfc8f763d404a

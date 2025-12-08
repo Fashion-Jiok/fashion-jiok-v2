@@ -1,4 +1,4 @@
-// server.js - fashionjiok DB용 (수정 완료)
+// server.js - AI 스타일 추천 기능 추가
 require('dotenv').config(); 
 
 const express = require('express');
@@ -11,13 +11,14 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ⭐️여기에 auth 라우터 추가 
+// Auth 라우터
 const authRoutes = require('./src/routes/auth');
 app.use('/api/auth', authRoutes);
 
 console.log('---------------------------------');
 console.log('카카오 키 로드 성공:', process.env.KAKAO_REST_API_KEY ? 'O' : 'X');
 console.log('---------------------------------');
+
 // Gemini AI 설정
 const apiKey = process.env.GEMINI_API_KEY;
 let genAI;
@@ -30,13 +31,39 @@ if (apiKey) {
 const MODEL_NAME = "gemini-2.5-flash";
 
 // ============================================
-// API 1: 탐색 화면 - 사용자 목록 (수정됨)
+// 🆕 헬퍼: 사용자가 가장 많이 좋아한 스타일 분석
+// ============================================
+async function getTopLikedStyle(userId) {
+    try {
+        const [rows] = await pool.query(`
+            SELECT img.image_style, COUNT(*) as count
+            FROM likes l
+            JOIN user_images img ON l.to_user_id = img.user_id AND img.is_primary = TRUE
+            WHERE l.from_user_id = ? AND img.image_style IS NOT NULL
+            GROUP BY img.image_style
+            ORDER BY count DESC
+            LIMIT 1
+        `, [userId]);
+
+        return rows.length > 0 ? rows[0].image_style : null;
+    } catch (err) {
+        console.error('❌ [TOP_STYLE] 에러:', err);
+        return null;
+    }
+}
+
+// ============================================
+// API 1: 탐색 화면 - 사용자 목록 (AI 추천 + 나를 좋아한 표시)
 // ============================================
 app.get('/api/users/explore', async (req, res) => {
     const myId = parseInt(req.query.userId) || 1;
     const styleFilter = req.query.style;
 
     try {
+        // ⭐️ 1. 사용자가 가장 많이 좋아한 스타일 조회
+        const topStyle = await getTopLikedStyle(myId);
+        console.log(`🎯 [EXPLORE] User ${myId}의 AI 추천 스타일: ${topStyle}`);
+
         let query = `
             SELECT 
                 u.user_id as id,
@@ -44,31 +71,39 @@ app.get('/api/users/explore', async (req, res) => {
                 u.age,
                 u.gender,
                 u.location,
-                u.job as style,  -- 👈 [중요] u.style을 u.job으로 변경해야 에러가 안 납니다!
+                u.job as style,
                 img.image_url as image,
-                CASE WHEN l.like_id IS NOT NULL THEN 1 ELSE 0 END as isLiked
+                img.image_style,
+                CASE WHEN l_my.like_id IS NOT NULL THEN 1 ELSE 0 END as isLiked,
+                CASE WHEN l_their.like_id IS NOT NULL THEN 1 ELSE 0 END as likedMe,
+                CASE WHEN img.image_style = ? AND img.image_style IS NOT NULL THEN 1 ELSE 0 END as isAiRecommended
             FROM users u
             LEFT JOIN user_images img 
                 ON u.user_id = img.user_id AND img.is_primary = TRUE
-            LEFT JOIN likes l 
-                ON l.from_user_id = ? AND l.to_user_id = u.user_id
+            LEFT JOIN likes l_my 
+                ON l_my.from_user_id = ? AND l_my.to_user_id = u.user_id
+            LEFT JOIN likes l_their
+                ON l_their.from_user_id = u.user_id AND l_their.to_user_id = ?
             WHERE u.is_active = TRUE 
               AND u.user_id != ?
         `;
 
-        const params = [myId, myId];
+        const params = [topStyle, myId, myId, myId];
 
-        // 필터 로직도 job(style) 기준으로 동작
+        // 필터 로직
         if (styleFilter && styleFilter !== '전체') {
             const styles = styleFilter.split(',').map(s => s.trim());
             const placeholders = styles.map(() => '?').join(',');
-            query += ` AND u.job IN (${placeholders}) `; // 👈 여기도 u.style -> u.job 변경
+            query += ` AND u.job IN (${placeholders}) `;
             params.push(...styles);
         }
 
-        query += ` ORDER BY RAND() LIMIT 10 `;
+        // ⭐️ AI 추천과 나를 좋아한 사람을 우선 정렬
+        query += ` ORDER BY isAiRecommended DESC, likedMe DESC, RAND() LIMIT 20 `;
 
         const [users] = await pool.query(query, params);
+        
+        console.log(`✅ [EXPLORE] ${users.length}명 조회 (AI추천: ${users.filter(u => u.isAiRecommended).length}, 나를좋아함: ${users.filter(u => u.likedMe).length})`);
         res.json(users);
         
     } catch (err) {
@@ -78,13 +113,13 @@ app.get('/api/users/explore', async (req, res) => {
 });
 
 // ============================================
-// API 2: 매칭 카드 - 추천 사용자 (나를 좋아한 사람 우선)
+// API 2: 매칭 카드 - 추천 사용자
 // ============================================
 app.get('/api/matches/cards', async (req, res) => {
     const myId = parseInt(req.query.userId) || 1;
     
     try {
-        // ⭐️ 1. 나를 좋아한 사람들 (상호 좋아요 아닌 경우만)
+        // ⭐️ 1. 나를 좋아한 사람들
         const [likedMe] = await pool.query(`
             SELECT 
                 u.user_id as id,
@@ -94,17 +129,16 @@ app.get('/api/matches/cards', async (req, res) => {
                 u.job as style,
                 u.location,
                 img.image_url as image,
+                img.image_style,
                 'liked_me' as type,
                 FLOOR(RAND() * 30 + 70) as styleScore
             FROM users u
             JOIN likes l ON u.user_id = l.from_user_id
             LEFT JOIN user_images img ON u.user_id = img.user_id AND img.is_primary = TRUE
             WHERE l.to_user_id = ?
-            -- 내가 아직 좋아요 안 누른 사람만
             AND NOT EXISTS (
                 SELECT 1 FROM likes WHERE from_user_id = ? AND to_user_id = u.user_id
             )
-            -- 이미 매칭된 사람 제외
             AND NOT EXISTS (
                 SELECT 1 FROM chat_rooms 
                 WHERE (user_id_1 = ? AND user_id_2 = u.user_id)
@@ -112,7 +146,7 @@ app.get('/api/matches/cards', async (req, res) => {
             )
         `, [myId, myId, myId, myId]);
 
-        // ⭐️ 2. 랜덤 추천 (내가 좋아요 안 누르고, 나를 좋아요 안 한 사람)
+        // ⭐️ 2. 랜덤 추천
         const [random] = await pool.query(`
             SELECT 
                 u.user_id as id,
@@ -122,20 +156,18 @@ app.get('/api/matches/cards', async (req, res) => {
                 u.job as style,
                 u.location,
                 img.image_url as image,
+                img.image_style,
                 'random' as type,
                 FLOOR(RAND() * 30 + 70) as styleScore
             FROM users u
             LEFT JOIN user_images img ON u.user_id = img.user_id AND img.is_primary = TRUE
             WHERE u.user_id != ?
-            -- 내가 좋아요 안 누른 사람
             AND NOT EXISTS (
                 SELECT 1 FROM likes WHERE from_user_id = ? AND to_user_id = u.user_id
             )
-            -- 나를 좋아요 안 한 사람
             AND NOT EXISTS (
                 SELECT 1 FROM likes WHERE from_user_id = u.user_id AND to_user_id = ?
             )
-            -- 이미 매칭된 사람 제외
             AND NOT EXISTS (
                 SELECT 1 FROM chat_rooms 
                 WHERE (user_id_1 = ? AND user_id_2 = u.user_id)
@@ -145,10 +177,9 @@ app.get('/api/matches/cards', async (req, res) => {
             LIMIT 20
         `, [myId, myId, myId, myId, myId]);
 
-        console.log(`✅ [MATCHES] 나를 좋아한 사람: ${likedMe.length}명, 랜덤: ${random.length}명`);
-        
-        // ⭐️ 나를 좋아한 사람을 먼저 보여줌
+        console.log(`✅ [MATCHES] 나를 좋아한: ${likedMe.length}명, 랜덤: ${random.length}명`);
         res.json([...likedMe, ...random]);
+        
     } catch (err) {
         console.error('❌ [MATCHES] 에러:', err);
         res.status(500).send("DB Error");
@@ -165,13 +196,13 @@ app.post('/api/matches/like', async (req, res) => {
     try {
         await connection.beginTransaction();
         
-        // ⭐️ 1. 좋아요 저장 (중복 방지)
+        // 1. 좋아요 저장
         await connection.query(
             `INSERT IGNORE INTO likes (from_user_id, to_user_id) VALUES (?, ?)`,
             [myId, targetId]
         );
 
-        // ⭐️ 2. 상호 좋아요 확인
+        // 2. 상호 좋아요 확인
         const [mutual] = await connection.query(
             `SELECT like_id FROM likes WHERE from_user_id = ? AND to_user_id = ?`,
             [targetId, myId]
@@ -183,7 +214,6 @@ app.post('/api/matches/like', async (req, res) => {
         if (mutual.length > 0) {
             isMatch = true;
             
-            // ⭐️ 3. 채팅방 생성 (작은 ID를 user_id_1로)
             const user1 = Math.min(myId, targetId);
             const user2 = Math.max(myId, targetId);
             
@@ -194,7 +224,6 @@ app.post('/api/matches/like', async (req, res) => {
                 [user1, user2]
             );
 
-            // ⭐️ 4. 방 ID 가져오기
             const [room] = await connection.query(
                 `SELECT room_id FROM chat_rooms 
                  WHERE user_id_1 = ? AND user_id_2 = ?`,
@@ -202,7 +231,6 @@ app.post('/api/matches/like', async (req, res) => {
             );
             
             roomId = room[0]?.room_id;
-
             console.log(`🎉 [MATCH] ${myId} ↔️ ${targetId} 매칭 성공! 방ID: ${roomId}`);
         }
 
@@ -219,8 +247,9 @@ app.post('/api/matches/like', async (req, res) => {
         connection.release();
     }
 });
+
 // ============================================
-// API 4: 채팅 목록 (매칭된 사람들)
+// API 4: 채팅 목록
 // ============================================
 app.get('/api/chatlist', async (req, res) => {
     const userId = parseInt(req.query.userId) || 1;
@@ -290,6 +319,7 @@ app.get('/api/chatlist', async (req, res) => {
         res.status(500).send("ChatList Error");
     }
 });
+
 // ============================================
 // API 5: 메시지 전송
 // ============================================
@@ -303,7 +333,6 @@ app.post('/api/chat/send', async (req, res) => {
             [roomId, senderId, text]
         );
         
-        // 채팅방 업데이트
         await pool.query(
             `UPDATE chat_rooms SET last_message_at = NOW() WHERE room_id = ?`,
             [roomId]
@@ -345,8 +374,10 @@ app.get('/api/chat/messages', async (req, res) => {
         res.status(500).send("Get Messages Error");
     }
 });
-// server.js - API 7: 지도 - 주변 사용자 (수정)
 
+// ============================================
+// API 7: 지도 - 주변 사용자
+// ============================================
 app.get('/api/users/locations', async (req, res) => {
     const { userId, lat, lon } = req.query;
     
@@ -362,9 +393,9 @@ app.get('/api/users/locations', async (req, res) => {
                 loc.latitude,
                 loc.longitude,
                 loc.location_name,
-                img.image_url
+                img.image_url,
+                img.image_style
             FROM users u
-            -- ⭐️ INNER JOIN 대신 LEFT JOIN 사용
             LEFT JOIN user_locations loc ON u.user_id = loc.user_id 
             LEFT JOIN user_images img ON u.user_id = img.user_id AND img.is_primary = TRUE
             WHERE u.user_id != ?
@@ -372,7 +403,7 @@ app.get('/api/users/locations', async (req, res) => {
             LIMIT 80
         `, [userId || 1]);
 
-        console.log(`✅ [MAP] ${users.length}명 조회 (LEFT JOIN 적용)`);
+        console.log(`✅ [MAP] ${users.length}명 조회`);
         res.json(users);
         
     } catch (err) {
@@ -380,31 +411,12 @@ app.get('/api/users/locations', async (req, res) => {
         res.status(500).send("Location Error");
     }
 });
-// ============================================
-// 헬퍼 함수
-// ============================================
-function getTimeAgo(date) {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    if (seconds < 60) return '방금 전';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}분 전`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}시간 전`;
-    const days = Math.floor(hours / 24);
-    return `${days}일 전`;
-}
-
-// ============================================
-// 서버 실행
-// ============================================
-const PORT = process.env.PORT || 3000;
 
 // ============================================
 // API 8: AI 대화 추천 (Gemini)
 // ============================================
 app.post('/api/ai/suggestions', async (req, res) => {
     console.log('--- 🤖 AI 추천 요청 받음 ---');
-    console.log('요청 데이터:', JSON.stringify(req.body));  // ⭐️ 추가
     
     const { userProfile, partnerProfile, chatHistory } = req.body;
 
@@ -427,13 +439,9 @@ app.post('/api/ai/suggestions', async (req, res) => {
 위 정보를 바탕으로 대화를 이어나갈 수 있도록 사용자에게 추천할 3개의 짧은 다음 메시지를 각 줄마다 하나씩 작성해주세요.
 각 메시지는 한 문장으로 작성하고, 줄바꿈으로 구분해주세요.`;
 
-        console.log('📝 프롬프트 전송 중...');  // ⭐️ 추가
-        
         const model = genAI.getGenerativeModel({ model: MODEL_NAME });
         const result = await model.generateContent(prompt);
         const text = result.response.text();
-
-        console.log('📥 Gemini 원본 응답:', text);  // ⭐️ 추가 - 이게 중요!
 
         const suggestions = text.trim().split('\n').filter(s => s.trim()).slice(0, 3);
         
@@ -445,8 +453,9 @@ app.post('/api/ai/suggestions', async (req, res) => {
         res.status(500).json({ error: 'AI 처리 중 오류 발생' });
     }
 });
+
 // ============================================
-// API 7: 대화방 삭제(나가기)
+// API 9: 대화방 삭제(나가기)
 // ============================================
 app.post('/api/chat/delete', async (req, res) => {
     const { roomId } = req.body;
@@ -470,10 +479,28 @@ app.post('/api/chat/delete', async (req, res) => {
     }
 });
 
+// ============================================
+// 헬퍼 함수
+// ============================================
+function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    if (seconds < 60) return '방금 전';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}분 전`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}시간 전`;
+    const days = Math.floor(hours / 24);
+    return `${days}일 전`;
+}
 
+// ============================================
+// 서버 실행
+// ============================================
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
     console.log(`🚀 서버 실행됨 (포트: ${PORT})`);
     console.log(`📊 DB: fashionjiok`);
     console.log(`🔐 Auth API: /api/auth/login, /api/auth/signup`);
+    console.log(`🎯 AI 추천: 사용자가 좋아요 누른 스타일 기반 추천 활성화`);
 });
