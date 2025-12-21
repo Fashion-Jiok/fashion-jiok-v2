@@ -74,17 +74,15 @@ AI 에이전트가 대화 시작과 데이트 장소 추천까지 자연스럽�
 
 
 
-## [해심 구현 기능 화면]
+## 5. [핵심 구현 기능 화면]
+테스트 화면은 미드저니로 생성한 AI 이미지를 활용했습니다.
+
+![Demo GIF](https://github.com/Fashion-Jiok/fashion-jiok-v2/blob/32747cfa70a71da38974ac3d799f6abc3263f4d0/static/AIstyle.gif?raw=true)
 
 
 
 
-
-
-
-
-
-## [파일 구조]
+## 6. [파일 구조]
 
 ```
 fashion-jiok/
